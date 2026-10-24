@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PTT 3D SMART BOARD — แนะนำโหมดการผลิตแบบ Real-Time</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=20261024" />
+</head>
+<body>
+  <div class="viewport-wrapper">
+    <!-- Main 1607 x 896 Smart Board Container -->
+    <main id="smart-board" class="smart-board" aria-label="PTT 3D Smart Board Dashboard">
+      <!-- Base Layer: Original bg_3dc3.png with clean dynamic-region inpainting + live gauges/charts/bars -->
+      <canvas id="board-canvas" width="1607" height="896"></canvas>
+
+      <!-- SVG Overlay Layer for crisp glowing active mode borders & badges -->
+      <svg id="board-svg" class="board-svg" viewBox="0 0 1607 896" preserveAspectRatio="none">
+        <defs>
+          <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="glow-purple" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <g id="active-mode-layer"></g>
+      </svg>
+
+      <!-- Grey-out overlays for NON-recommended production modes (toggled by script.js) -->
+      <div id="mode-dim-c3_max" class="mode-dim" style="--x: 436; --y: 653; --w: 290; --h: 242;"></div>
+      <div id="mode-dim-optimize" class="mode-dim" style="--x: 731; --y: 653; --w: 291; --h: 242;"></div>
+      <div id="mode-dim-lpg_mode" class="mode-dim" style="--x: 1026; --y: 653; --w: 286; --h: 242;"></div>
+
+      <!-- Interactive Overlay Layer (All Editable Numbers & Flowchart Controls) -->
+      <div class="overlay-layer">
+        <!-- Logged-in User Profile Badge & Logout Button -->
+        <div id="user-header-slot" class="user-header-slot" style="--x: 875; --y: 7; --w: 190; --h: 34;">
+          <div class="user-badge" title="ผู้ใช้งานปัจจุบัน">
+            <span class="user-avatar-icon">👤</span>
+            <span id="user-badge-name" class="user-badge-name">oper_gsp</span>
+          </div>
+          <button type="button" id="btn-logout" class="btn-logout" title="ออกจากระบบ (Sign Out)">
+            <span class="logout-icon">🚪</span>
+            <span class="logout-text">ออก</span>
+          </button>
+        </div>
+
+        <!-- MS Teams Notification Trigger Button -->
+        <div class="teams-header-slot" style="--x: 1075; --y: 7; --w: 215; --h: 34;">
+          <button
+            type="button"
+            id="btn-open-teams"
+            class="teams-notify-btn"
+            title="ตั้งค่าและส่งแจ้งเตือนโหมดการผลิตเข้ากลุ่ม MS Teams (ส่งทันที / ตั้งเวลาประจำวัน)"
+          >
+            <span class="teams-icon">📢</span>
+            <span class="teams-btn-text">แจ้งเตือน MS Teams</span>
+            <span id="teams-schedule-dot" class="teams-dot" title="สถานะการตั้งเวลาอัตโนมัติ"></span>
+          </button>
+        </div>
+
+        <!-- Top Right Date & Time -->
+        <input
+          id="inp-date"
+          type="text"
+          class="board-input input-date"
+          value="วันที่ 21 ต.ค. 2026"
+          title="วันที่ปัจจุบัน (อัปเดตอัตโนมัติ / คลิกเพื่อแก้ไข)"
+          style="--x: 1300; --y: 10; --w: 150; --h: 28;"
+        />
+        <input
+          id="inp-time"
+          type="text"
+          class="board-input input-time"
+          value="21:00 น."
+          title="เวลาปัจจุบัน (อัปเดตอัตโนมัติ / คลิกเพื่อแก้ไข)"
+          style="--x: 1455; --y: 8; --w: 125; --h: 32;"
+        />
+
+        <!-- GSP Daily Report sync (Propane % → Inventory %) -->
+        <div class="flowchart-inline-bar gsp-card1-slot" style="--x: 238; --y: 100; --w: 160; --h: 36;">
+          <button
+            type="button"
+            id="btn-open-gsp"
+            class="gsp-open-btn"
+            title="ดึงค่า Propane, LPG, NGL จากเว็บ GSP Daily Report (Tank Farm)"
+          >
+            <span>🔗 GSP Propane 50.81%</span>
+          </button>
+        </div>
+
+        <!-- ============================================================
+             CARD 1: INVENTORY (ระดับสินค้าคงคลัง)
+             ============================================================ -->
+        <!-- 62% inside 3D Tank -->
+        <div class="input-group tank-pct-group" style="--x: 34; --y: 204; --w: 152; --h: 42;">
+          <input
+            id="inp-inv-pct"
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            class="board-input input-tank-pct"
+            value="50.81"
+            title="ระดับสินค้าคงคลัง (%) — เชื่อมโยงเงื่อนไข Flowchart (>60%, >70%)"
+          />
+          <span class="unit-suffix tank-pct-suffix">%</span>
+        </div>
+
+        <!-- 12,400 / 20,000 Ton -->
+        <div class="input-group inv-ton-group" style="--x: 132; --y: 303; --w: 220; --h: 28;">
+          <input
+            id="inp-inv-ton"
+            type="text"
+            inputmode="numeric"
+            class="board-input input-ton-val"
+            value="12,400"
+            title="ปริมาณสินค้าคงคลังปัจจุบัน (Ton)"
+          />
+          <span class="sep-slash">/</span>
+          <input
+            id="inp-inv-cap"
+            type="text"
+            inputmode="numeric"
+            class="board-input input-ton-cap"
+            value="20,000"
+            title="ความจุสินค้าคงคลังทั้งหมด (Ton)"
+          />
+          <span class="unit-ton">Ton</span>
+        </div>
+
+        <!-- ============================================================
+             CARD 2: TANK FARM DEMAND (ความต้องการใช้ถังและพื้นที่จัดเก็บ)
+             ============================================================ -->
+        <!-- 70% inside Circular Ring Gauge -->
+        <div class="input-group demand-pct-group" style="--x: 711; --y: 184; --w: 72; --h: 34;">
+          <input
+            id="inp-demand-pct"
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            class="board-input input-demand-pct"
+            value="70"
+            title="ความต้องการใช้ถังและพื้นที่จัดเก็บ (%)"
+          />
+          <span class="unit-suffix demand-pct-suffix">%</span>
+        </div>
+
+        <!-- 14,000 / 20,000 Ton -->
+        <div class="input-group demand-ton-group" style="--x: 492; --y: 258; --w: 215; --h: 26;">
+          <input
+            id="inp-demand-ton"
+            type="text"
+            inputmode="numeric"
+            class="board-input input-ton-val"
+            value="14,000"
+            title="ความต้องการจัดเก็บปัจจุบัน (Ton)"
+          />
+          <span class="sep-slash">/</span>
+          <input
+            id="inp-demand-cap"
+            type="text"
+            inputmode="numeric"
+            class="board-input input-ton-cap"
+            value="20,000"
+            title="ความจุถังจัดเก็บทั้งหมด (Ton)"
+          />
+          <span class="unit-ton">Ton</span>
+        </div>
+
+        <!-- พื้นที่คงเหลือ 6,000 Ton -->
+        <div class="input-group rem-ton-group" style="--x: 495; --y: 326; --w: 118; --h: 24;">
+          <input
+            id="inp-rem-ton"
+            type="text"
+            inputmode="numeric"
+            class="board-input input-sub-metric"
+            value="6,000"
+            title="พื้นที่คงเหลือ (Ton)"
+          />
+          <span class="unit-ton-sm">Ton</span>
+        </div>
+
+        <!-- จำนวนถังที่ใช้ 7 / 10 ถัง -->
+        <div class="input-group tanks-used-group" style="--x: 648; --y: 326; --w: 112; --h: 24;">
+          <input
+            id="inp-tanks-used"
+            type="number"
+            min="0"
+            max="99"
+            step="1"
+            class="board-input input-tank-count"
+            value="7"
+            title="จำนวนถังที่ใช้"
+          />
+          <span class="sep-slash-sm">/</span>
+          <input
+            id="inp-tanks-total"
+            type="number"
+            min="1"
+            max="99"
+            step="1"
+            class="board-input input-tank-count"
+            value="10"
+            title="จำนวนถังทั้งหมด"
+          />
+          <span class="unit-ton-sm">ถัง</span>
+        </div>
+
+        <!-- ============================================================
+             CARD 3: PRODUCT PRICE (ราคาผลิตภัณฑ์)
+             ============================================================ -->
+        <!-- 300 USD/Ton -->
+        <div class="input-group price-main-group" style="--x: 965; --y: 162; --w: 122; --h: 52;">
+          <input
+            id="inp-prod-price"
+            type="text"
+            inputmode="numeric"
+            class="board-input input-price-big"
+            value="300"
+            title="ราคาผลิตภัณฑ์ (USD/Ton)"
+          />
+        </div>
+
+        <!-- +5% จากชั่วโมงก่อน -->
+        <div class="input-group price-chg-group" style="--x: 1122; --y: 251; --w: 72; --h: 34;">
+          <input
+            id="inp-prod-chg"
+            type="text"
+            class="board-input input-chg-pct chg-up"
+            value="+5%"
+            title="การเปลี่ยนแปลงราคาผลิตภัณฑ์เทียบชั่วโมงก่อน (%)"
+          />
+        </div>
+
+        <!-- ============================================================
+             CARD 4: ENERGY PRICE (ต้นทุนพลังงาน)
+             ============================================================ -->
+        <!-- 2,650 MMBtu/Ton -->
+        <div class="input-group energy-main-group" style="--x: 1338; --y: 162; --w: 144; --h: 52;">
+          <input
+            id="inp-energy-price"
+            type="text"
+            inputmode="numeric"
+            class="board-input input-energy-big"
+            value="2,650"
+            title="ต้นทุนพลังงาน (MMBtu/Ton)"
+          />
+        </div>
+
+        <!-- +8% จากชั่วโมงก่อน -->
+        <div class="input-group energy-chg-group" style="--x: 1522; --y: 251; --w: 72; --h: 34;">
+          <input
+            id="inp-energy-chg"
+            type="text"
+            class="board-input input-chg-pct chg-up-red"
+            value="+8%"
+            title="การเปลี่ยนแปลงต้นทุนพลังงานเทียบชั่วโมงก่อน (%)"
+          />
+        </div>
+
+        <!-- ============================================================
+             BOTTOM LEFT: AI ANALYSIS (วิเคราะห์ข้อมูล 4 ปัจจัยร่วมกัน)
+             ============================================================ -->
+        <!-- Row 1: Inventory 62% -->
+        <div class="input-group ai-val-group" style="--x: 326; --y: 678; --w: 86; --h: 28;">
+          <input
+            id="inp-ai-inv"
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            class="board-input input-ai-pct"
+            value="50.81"
+            title="Inventory (%)"
+          />
+          <span class="ai-unit-pct">%</span>
+        </div>
+
+        <!-- Row 2: Tank Farm Demand 70% -->
+        <div class="input-group ai-val-group" style="--x: 332; --y: 722; --w: 75; --h: 28;">
+          <input
+            id="inp-ai-demand"
+            type="number"
+            min="0"
+            max="100"
+            class="board-input input-ai-pct"
+            value="70"
+            title="Tank Farm Demand (%)"
+          />
+          <span class="ai-unit-pct">%</span>
+        </div>
+
+        <!-- Row 3: Product Price 300 USD/Ton -->
+        <div class="input-group ai-val-group" style="--x: 325; --y: 770; --w: 46; --h: 28;">
+          <input
+            id="inp-ai-prod"
+            type="text"
+            inputmode="numeric"
+            class="board-input input-ai-num"
+            value="300"
+            title="Product Price (USD/Ton)"
+          />
+        </div>
+
+        <!-- Row 4: Energy Price 2,650 MMBtu/Ton -->
+        <div class="input-group ai-val-group" style="--x: 330; --y: 820; --w: 68; --h: 26;">
+          <input
+            id="inp-ai-energy"
+            type="text"
+            inputmode="numeric"
+            class="board-input input-ai-num-left"
+            value="2,650"
+            title="Energy Price (MMBtu/Ton)"
+          />
+        </div>
+
+        <!-- ============================================================
+             BOTTOM CENTER HEADER: FLOWCHART CONDITION BAR & GSP SYNC
+             ============================================================ -->
+        <div class="flowchart-inline-bar" style="--x: 955; --y: 607; --w: 360; --h: 44;">
+          <button
+            type="button"
+            id="btn-cross-toggle"
+            class="cross-toggle-pill is-yes"
+            title="คลิกเพื่อสลับเงื่อนไข Cross C3 to LPG ? (YES / NO) ตาม Flowchart"
+          >
+            <span class="cross-label">Cross C3→LPG:</span>
+            <span id="cross-val-badge" class="cross-badge">YES</span>
+          </button>
+          <button
+            type="button"
+            id="btn-open-flowchart"
+            class="flowchart-open-btn"
+            title="เปิดดูผังการตัดสินใจเลือกโหมดการผลิต (Operation Mode Flowchart)"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M6 3v12" /><circle cx="18" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path d="M18 9a9 9 0 0 1-9 9" />
+            </svg>
+            <span>Flowchart เงื่อนไข</span>
+          </button>
+        </div>
+
+        <!-- ============================================================
+             MODE 1: 1. C3 Max Mode (เพิ่มการผลิต C3 สูงสุด)
+             ============================================================ -->
+        <!-- C3, C4, LPG, Other % -->
+        <div class="input-group mode-mix-group" style="--x: 604; --y: 715; --w: 48; --h: 19;">
+          <input id="inp-m1-c3" type="number" min="0" max="100" class="board-input input-mode-mix" value="60" /><span class="mix-pct">%</span>
+        </div>
+        <div class="input-group mode-mix-group" style="--x: 604; --y: 734; --w: 48; --h: 19;">
+          <input id="inp-m1-c4" type="number" min="0" max="100" class="board-input input-mode-mix" value="20" /><span class="mix-pct">%</span>
+        </div>
+        <div class="input-group mode-mix-group" style="--x: 604; --y: 753; --w: 48; --h: 19;">
+          <input id="inp-m1-lpg" type="number" min="0" max="100" class="board-input input-mode-mix" value="15" /><span class="mix-pct">%</span>
+        </div>
+        <div class="input-group mode-mix-group" style="--x: 604; --y: 772; --w: 48; --h: 19;">
+          <input id="inp-m1-other" type="number" min="0" max="100" class="board-input input-mode-mix" value="5" /><span class="mix-pct">%</span>
+        </div>
+        <!-- Mode 1 Suitability 70% -->
+        <div class="input-group mode-suit-group" style="--x: 654; --y: 842; --w: 58; --h: 28;">
+          <input id="inp-m1-suit" type="number" min="0" max="100" class="board-input input-mode-suit" value="70" title="ความเหมาะสม C3 Max Mode (%)" /><span class="suit-pct">%</span>
+        </div>
+
+        <!-- ============================================================
+             MODE 2: 2. Optimize Mode (ผลิตสมดุล)
+             ============================================================ -->
+        <div class="input-group mode-mix-group" style="--x: 912; --y: 715; --w: 48; --h: 19;">
+          <input id="inp-m2-c3" type="number" min="0" max="100" class="board-input input-mode-mix" value="40" /><span class="mix-pct">%</span>
+        </div>
+        <div class="input-group mode-mix-group" style="--x: 912; --y: 734; --w: 48; --h: 19;">
+          <input id="inp-m2-c4" type="number" min="0" max="100" class="board-input input-mode-mix" value="30" /><span class="mix-pct">%</span>
+        </div>
+        <div class="input-group mode-mix-group" style="--x: 912; --y: 753; --w: 48; --h: 19;">
+          <input id="inp-m2-lpg" type="number" min="0" max="100" class="board-input input-mode-mix" value="25" /><span class="mix-pct">%</span>
+        </div>
+        <div class="input-group mode-mix-group" style="--x: 912; --y: 772; --w: 48; --h: 19;">
+          <input id="inp-m2-other" type="number" min="0" max="100" class="board-input input-mode-mix" value="5" /><span class="mix-pct">%</span>
+        </div>
+        <!-- Mode 2 Suitability 85% -->
+        <div class="input-group mode-suit-group" style="--x: 953; --y: 842; --w: 58; --h: 28;">
+          <input id="inp-m2-suit" type="number" min="0" max="100" class="board-input input-mode-suit" value="85" title="ความเหมาะสม Optimize Mode (%)" /><span class="suit-pct">%</span>
+        </div>
+
+        <!-- ============================================================
+             MODE 3: 3. LPG Mode (เพิ่มการผลิต LPG สูงสุด)
+             ============================================================ -->
+        <div class="input-group mode-mix-group" style="--x: 1212; --y: 715; --w: 48; --h: 19;">
+          <input id="inp-m3-c3" type="number" min="0" max="100" class="board-input input-mode-mix" value="20" /><span class="mix-pct">%</span>
+        </div>
+        <div class="input-group mode-mix-group" style="--x: 1212; --y: 734; --w: 48; --h: 19;">
+          <input id="inp-m3-c4" type="number" min="0" max="100" class="board-input input-mode-mix" value="20" /><span class="mix-pct">%</span>
+        </div>
+        <div class="input-group mode-mix-group" style="--x: 1212; --y: 753; --w: 48; --h: 19;">
+          <input id="inp-m3-lpg" type="number" min="0" max="100" class="board-input input-mode-mix" value="55" /><span class="mix-pct">%</span>
+        </div>
+        <div class="input-group mode-mix-group" style="--x: 1212; --y: 772; --w: 48; --h: 19;">
+          <input id="inp-m3-other" type="number" min="0" max="100" class="board-input input-mode-mix" value="5" /><span class="mix-pct">%</span>
+        </div>
+        <!-- Mode 3 Suitability 45% -->
+        <div class="input-group mode-suit-group" style="--x: 1252; --y: 842; --w: 58; --h: 28;">
+          <input id="inp-m3-suit" type="number" min="0" max="100" class="board-input input-mode-suit" value="45" title="ความเหมาะสม LPG Mode (%)" /><span class="suit-pct">%</span>
+        </div>
+
+        <!-- ============================================================
+             BOTTOM RIGHT: EXPECTED RESULT (EST.)
+             ============================================================ -->
+        <input
+          id="inp-exp-profit"
+          type="text"
+          class="board-input input-expected"
+          value="สูงสุด"
+          title="กำไรโดยประมาณ"
+          style="--x: 1495; --y: 674; --w: 92; --h: 28;"
+        />
+        <input
+          id="inp-exp-energy"
+          type="text"
+          class="board-input input-expected"
+          value="เหมาะสม"
+          title="การใช้พลังงาน"
+          style="--x: 1495; --y: 713; --w: 92; --h: 28;"
+        />
+        <input
+          id="inp-exp-storage"
+          type="text"
+          class="board-input input-expected"
+          value="สมดุล"
+          title="การใช้พื้นที่จัดเก็บ"
+          style="--x: 1495; --y: 755; --w: 92; --h: 28;"
+        />
+        <input
+          id="inp-exp-flex"
+          type="text"
+          class="board-input input-expected"
+          value="ดี"
+          title="ความยืดหยุ่นในการขาย"
+          style="--x: 1495; --y: 795; --w: 92; --h: 28;"
+        />
+      </div>
+    </main>
+  </div>
+
+  <!-- ====================================================================
+       INTERACTIVE FLOWCHART MODAL (ผังการตัดสินใจเลือกโหมดการผลิต)
+       Matches Screenshot 2569-10-20 at 13.46.50.png
+       ==================================================================== -->
+  <div id="flowchart-modal" class="flowchart-modal hidden" role="dialog" aria-modal="true" aria-labelledby="flowchart-modal-title">
+    <div class="flowchart-backdrop" id="flowchart-backdrop"></div>
+    <div class="flowchart-dialog">
+      <!-- Header matching the blue banner in the screenshot -->
+      <div class="fc-header">
+        <div class="fc-header-left">
+          <div class="fc-gear-circle">⚙️</div>
+          <h2 id="flowchart-modal-title">ผังการตัดสินใจเลือกโหมดการผลิต (Operation Mode)</h2>
+        </div>
+        <div class="fc-header-actions">
+          <button type="button" id="btn-tab-interactive" class="fc-tab-btn active">ผังแบบโต้ตอบ (Live)</button>
+          <button type="button" id="btn-tab-original" class="fc-tab-btn">รูปต้นฉบับ</button>
+          <button type="button" id="btn-close-flowchart" class="fc-close-btn" aria-label="ปิด">✕</button>
+        </div>
+      </div>
+
+      <!-- Quick Controls Bar inside Modal -->
+      <div class="fc-controls-strip">
+        <div class="fc-control-item">
+          <label>Cross C3 to LPG ?</label>
+          <div class="fc-seg-group">
+            <button type="button" id="fc-btn-cross-yes" class="fc-seg-btn active-yes">YES</button>
+            <button type="button" id="fc-btn-cross-no" class="fc-seg-btn">NO</button>
+          </div>
+        </div>
+        <div class="fc-control-item">
+          <label for="fc-slider-inv">Inventory (%):</label>
+          <input type="range" id="fc-slider-inv" min="0" max="100" step="0.01" value="50.81" />
+          <span id="fc-inv-readout" class="fc-readout">50.81%</span>
+        </div>
+        <div class="fc-presets">
+          <button type="button" class="fc-preset-btn" data-preset="c3_no">ทดสอบ C3 Max (NO)</button>
+          <button type="button" class="fc-preset-btn" data-preset="c3_low">ทดสอบ C3 Max (50%)</button>
+          <button type="button" class="fc-preset-btn" data-preset="optimize">ทดสอบ Optimize (62%)</button>
+          <button type="button" class="fc-preset-btn" data-preset="lpg">ทดสอบ LPG Mode (78%)</button>
+        </div>
+      </div>
+
+      <!-- Tab 1: Interactive SVG Flowchart matching Screenshot 2569-10-20 at 13.46.50.png -->
+      <div id="fc-view-interactive" class="fc-body">
+        <svg class="fc-svg" viewBox="0 0 760 660" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="startGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#1d4ed8" />
+              <stop offset="100%" stop-color="#0a2472" />
+            </linearGradient>
+            <linearGradient id="diamondGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#f8fbff" />
+              <stop offset="100%" stop-color="#dbeafe" />
+            </linearGradient>
+            <filter id="fcShadow" x="-15%" y="-15%" width="130%" height="130%">
+              <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#1e3a8a" flood-opacity="0.18" />
+            </filter>
+            <filter id="fcActiveGlow" x="-25%" y="-25%" width="150%" height="150%">
+              <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#2563eb" flood-opacity="0.55" />
+            </filter>
+          </defs>
+
+          <!-- Connector: Start -> Cross C3 to LPG ? -->
+          <path id="fc-line-start" class="fc-path active" d="M 370 72 L 370 106" />
+          <polygon class="fc-arrow-blue" points="370,114 363,102 377,102" />
+
+          <!-- Connector: Cross C3 to LPG ? -> YES -> Inventory > 60% ? -->
+          <path id="fc-line-cross-yes" class="fc-path fc-yes-path" d="M 225 165 L 180 165 Q 170 165 170 175 L 170 245 Q 170 255 180 255 L 235 255 L 235 266" />
+          <polygon id="fc-arr-cross-yes" class="fc-arrow-green" points="235,274 228,262 242,262" />
+
+          <!-- Connector: Cross C3 to LPG ? -> NO -> C3 Max -->
+          <path id="fc-line-cross-no" class="fc-path fc-no-path" d="M 515 165 L 620 165 Q 630 165 630 175 L 630 282" />
+          <polygon id="fc-arr-cross-no" class="fc-arrow-red" points="630,292 623,280 637,280" />
+
+          <!-- Connector: Inventory > 60% ? -> NO -> C3 Max -->
+          <path id="fc-line-inv60-no" class="fc-path fc-no-path" d="M 380 330 L 525 330" />
+          <polygon id="fc-arr-inv60-no" class="fc-arrow-red" points="535,330 523,323 523,337" />
+
+          <!-- Connector: Inventory > 60% ? -> YES -> Inventory > 70% ? -->
+          <path id="fc-line-inv60-yes" class="fc-path fc-yes-path" d="M 240 395 L 240 438 L 280 438 L 280 448" />
+          <polygon id="fc-arr-inv60-yes" class="fc-arrow-green" points="280,456 273,444 287,444" />
+
+          <!-- Connector: Inventory > 70% ? -> YES -> LPG Mode -->
+          <path id="fc-line-inv70-yes" class="fc-path fc-yes-path" d="M 210 495 L 165 495 Q 155 495 155 505 L 155 562" />
+          <polygon id="fc-arr-inv70-yes" class="fc-arrow-green" points="155,572 148,560 162,560" />
+
+          <!-- Connector: Inventory > 70% ? -> NO -> Optimization -->
+          <path id="fc-line-inv70-no" class="fc-path fc-no-path" d="M 475 495 L 555 495 Q 565 495 565 505 L 565 562" />
+          <polygon id="fc-arr-inv70-no" class="fc-arrow-red" points="565,572 558,560 572,560" />
+
+          <!-- Node: Start -->
+          <g id="fc-node-start" filter="url(#fcShadow)">
+            <rect x="245" y="18" width="250" height="54" rx="27" fill="url(#startGrad)" />
+            <text x="370" y="53" text-anchor="middle" fill="#ffffff" font-size="25" font-weight="700">Start</text>
+          </g>
+
+          <!-- Node: Cross C3 to LPG ? -->
+          <g id="fc-node-cross" class="fc-clickable" filter="url(#fcShadow)">
+            <polygon points="370,114 518,165 370,216 222,165" fill="url(#diamondGrad)" stroke="#1d6fa5" stroke-width="2.5" />
+            <text x="370" y="172" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">Cross C3 to LPG ?</text>
+          </g>
+
+          <!-- Badges for Cross C3 to LPG -->
+          <g id="fc-badge-cross-yes" class="fc-clickable">
+            <rect x="130" y="188" width="84" height="36" rx="18" fill="#198754" />
+            <text x="172" y="212" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">YES</text>
+          </g>
+          <g id="fc-badge-cross-no" class="fc-clickable">
+            <rect x="588" y="188" width="84" height="36" rx="18" fill="#e11d1d" />
+            <text x="630" y="212" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">NO</text>
+          </g>
+
+          <!-- Node: Inventory > 60% ? -->
+          <g id="fc-node-inv60" filter="url(#fcShadow)">
+            <polygon points="240,266 380,330 240,394 100,330" fill="url(#diamondGrad)" stroke="#1d6fa5" stroke-width="2.5" />
+            <text x="240" y="322" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">Inventory</text>
+            <text x="240" y="348" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">&gt; 60% ?</text>
+          </g>
+
+          <!-- Badges for Inventory > 60% -->
+          <g id="fc-badge-inv60-no">
+            <rect x="415" y="312" width="80" height="36" rx="18" fill="#e11d1d" />
+            <text x="455" y="336" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">NO</text>
+          </g>
+          <g id="fc-badge-inv60-yes">
+            <rect x="198" y="400" width="84" height="34" rx="17" fill="#198754" />
+            <text x="240" y="423" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">YES</text>
+          </g>
+
+          <!-- Result Box: C3 Max -->
+          <g id="fc-res-c3max" filter="url(#fcShadow)">
+            <rect x="538" y="294" width="194" height="72" rx="12" fill="#ffe4e6" stroke="#e15b64" stroke-width="2.2" />
+            <text x="635" y="339" text-anchor="middle" fill="#c81e1e" font-size="26" font-weight="800">C3 Max</text>
+          </g>
+
+          <!-- Node: Inventory > 70% ? -->
+          <g id="fc-node-inv70" filter="url(#fcShadow)">
+            <polygon points="342,434 476,495 342,556 208,495" fill="url(#diamondGrad)" stroke="#1d6fa5" stroke-width="2.5" />
+            <text x="342" y="487" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">Inventory</text>
+            <text x="342" y="513" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">&gt; 70% ?</text>
+          </g>
+
+          <!-- Badges for Inventory > 70% -->
+          <g id="fc-badge-inv70-yes">
+            <rect x="115" y="508" width="80" height="36" rx="18" fill="#198754" />
+            <text x="155" y="532" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">YES</text>
+          </g>
+          <g id="fc-badge-inv70-no">
+            <rect x="525" y="508" width="80" height="36" rx="18" fill="#e11d1d" />
+            <text x="565" y="532" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">NO</text>
+          </g>
+
+          <!-- Result Box: LPG Mode -->
+          <g id="fc-res-lpg" filter="url(#fcShadow)">
+            <rect x="24" y="574" width="312" height="76" rx="12" fill="#dcfce7" stroke="#2e7d32" stroke-width="2.2" />
+            <circle cx="72" cy="612" r="30" fill="#1e824c" />
+            <path d="M72 592 C78 602, 86 608, 82 622 C80 628, 75 632, 72 632 C69 632, 62 628, 61 620 C59 610, 67 602, 72 592 Z" fill="#ffffff" />
+            <text x="205" y="621" text-anchor="middle" fill="#14532d" font-size="26" font-weight="800">LPG Mode</text>
+          </g>
+
+          <!-- Result Box: Optimization -->
+          <g id="fc-res-optimize" filter="url(#fcShadow)">
+            <rect x="396" y="574" width="330" height="76" rx="12" fill="#fef9c3" stroke="#eab308" stroke-width="2.2" />
+            <circle cx="444" cy="612" r="30" fill="#ea8c06" />
+            <rect x="430" y="614" width="6" height="12" fill="#fff" />
+            <rect x="440" y="605" width="6" height="21" fill="#fff" />
+            <rect x="450" y="595" width="6" height="31" fill="#fff" />
+            <text x="590" y="621" text-anchor="middle" fill="#b45309" font-size="26" font-weight="800">Optimization</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Tab 2: Original Flowchart Image from folder -->
+      <div id="fc-view-original" class="fc-body hidden">
+        <img src="Screenshot 2569-10-20 at 13.46.50.png" alt="ผังการตัดสินใจเลือกโหมดการผลิต (Operation Mode)" class="fc-orig-img" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       GSP DAILY REPORT SYNC MODAL (https://gspdailyreport.pttplc.com/DailyReport/Index)
+       Matches the second uploaded image (Propane, LPG, NGL, Propane + LPG)
+       ==================================================================== -->
+  <div id="gsp-modal" class="flowchart-modal hidden" role="dialog" aria-modal="true" aria-labelledby="gsp-modal-title">
+    <div class="flowchart-backdrop" id="gsp-backdrop"></div>
+    <div class="flowchart-dialog gsp-dialog">
+      <div class="fc-header">
+        <div class="fc-header-left">
+          <div class="fc-gear-circle">🛢️</div>
+          <div>
+            <h2 id="gsp-modal-title">เชื่อมต่อข้อมูล GSP Daily Report (Tank Farm)</h2>
+            <p class="gsp-sub-url">ที่มา: https://gspdailyreport.pttplc.com/DailyReport/Index</p>
+          </div>
+        </div>
+        <div class="fc-header-actions">
+          <button type="button" id="btn-fetch-gsp-now" class="gsp-sync-now-btn">🔄 ดึงค่าสดจากแท็บ Chrome</button>
+          <button type="button" id="btn-close-gsp" class="fc-close-btn" aria-label="ปิด">✕</button>
+        </div>
+      </div>
+
+      <div id="gsp-status-banner" class="gsp-status-banner">
+        <span>สถานะ: พบเซิร์ฟเวอร์ภายใน PTT (`Microsoft-IIS/10.0` + Azure AD SSO) — แสดงค่าล่าสุดจากหน้า Tank Farm</span>
+      </div>
+
+      <!-- Visual replica of the 2nd uploaded image: Propane, LPG, NGL, Propane + LPG = -->
+      <div class="gsp-tank-preview">
+        <div class="gsp-tanks-row">
+          <!-- Propane -->
+          <div class="gsp-tank-card">
+            <div class="gsp-tank-title">Propane</div>
+            <div class="gsp-tank-visual">
+              <div class="gsp-val-box">
+                <input id="inp-gsp-propane" type="number" step="0.01" min="0" max="100" value="50.81" />
+                <span>%</span>
+              </div>
+              <div class="gsp-vbar-track">
+                <div id="bar-gsp-propane" class="gsp-vbar-fill" style="height: 50.81%;"></div>
+              </div>
+            </div>
+            <button type="button" class="gsp-apply-mini" data-val-key="propanePct" data-target="inventory">ใช้เป็น Inventory %</button>
+          </div>
+
+          <!-- LPG -->
+          <div class="gsp-tank-card">
+            <div class="gsp-tank-title">LPG</div>
+            <div class="gsp-tank-visual">
+              <div class="gsp-val-box">
+                <input id="inp-gsp-lpg" type="number" step="0.01" min="0" max="100" value="35.46" />
+                <span>%</span>
+              </div>
+              <div class="gsp-vbar-track">
+                <div id="bar-gsp-lpg" class="gsp-vbar-fill" style="height: 35.46%;"></div>
+              </div>
+            </div>
+            <button type="button" class="gsp-apply-mini" data-val-key="lpgPct" data-target="inventory">ใช้เป็น Inventory %</button>
+          </div>
+
+          <!-- NGL -->
+          <div class="gsp-tank-card">
+            <div class="gsp-tank-title">NGL</div>
+            <div class="gsp-tank-visual">
+              <div class="gsp-val-box">
+                <input id="inp-gsp-ngl" type="number" step="0.01" min="0" max="100" value="55.48" />
+                <span>%</span>
+              </div>
+              <div class="gsp-vbar-track">
+                <div id="bar-gsp-ngl" class="gsp-vbar-fill" style="height: 55.48%;"></div>
+              </div>
+            </div>
+            <button type="button" class="gsp-apply-mini" data-val-key="nglPct" data-target="inventory">ใช้เป็น Inventory %</button>
+          </div>
+        </div>
+
+        <!-- Propane + LPG = 38.80 % -->
+        <div class="gsp-sum-banner">
+          <div class="gsp-sum-label">Propane + LPG =</div>
+          <div class="gsp-sum-bar">
+            <input id="inp-gsp-sum" type="number" step="0.01" min="0" max="100" value="38.80" />
+            <span>%</span>
+          </div>
+          <div class="gsp-sum-actions">
+            <button type="button" class="gsp-apply-primary" data-val-key="propanePlusLpgPct" data-target="inventory">
+              นำไปใส่ Card 1: Inventory (%)
+            </button>
+            <button type="button" class="gsp-apply-secondary" data-val-key="propanePlusLpgPct" data-target="demand">
+              นำไปใส่ Card 2: Tank Farm Demand (%)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="gsp-help-footer">
+        <strong>วิธีดึงค่าสดจากแท็บ Chrome อัตโนมัติ 100%:</strong>
+        ในโปรแกรม Google Chrome ที่เปิดหน้า <code>gspdailyreport.pttplc.com</code> อยู่ ให้ไปที่เมนูด้านบน
+        <code>View &gt; Developer &gt; Allow JavaScript from Apple Events</code> (เปิดครั้งเดียว) จากนั้นกดปุ่ม
+        <strong>"🔄 ดึงค่าสดจากแท็บ Chrome"</strong> ด้านบนได้เลย
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MS TEAMS NOTIFICATION MODAL (Power Automate Webhook)
+       Supports: ส่งทันที (Send Immediately) and ตั้งเวลา (Daily Scheduled Alert)
+       ==================================================================== -->
+  <div id="teams-modal" class="flowchart-modal hidden" role="dialog" aria-modal="true" aria-labelledby="teams-modal-title">
+    <div class="flowchart-backdrop" id="teams-backdrop"></div>
+    <div class="flowchart-dialog teams-dialog">
+      <!-- Modal Header -->
+      <div class="fc-header teams-modal-header">
+        <div class="fc-header-left">
+          <div class="fc-gear-circle teams-gear-circle">📢</div>
+          <div>
+            <h2 id="teams-modal-title">ระบบส่งแจ้งเตือนเข้ากลุ่ม MS Teams</h2>
+            <p class="gsp-sub-url">PTT 3D SMART BOARD ➔ Power Automate Webhook</p>
+          </div>
+        </div>
+        <div class="fc-header-actions">
+          <button type="button" id="btn-close-teams" class="fc-close-btn" aria-label="ปิด">✕</button>
+        </div>
+      </div>
+
+      <!-- Live Status / Result Banner -->
+      <div id="teams-status-banner" class="teams-status-banner">
+        <span id="teams-status-text">พร้อมส่งข้อมูลโหมดการผลิตที่แนะนำและ 4 ปัจจัยหลักเข้ากลุ่ม MS Teams</span>
+      </div>
+
+      <!-- Main Modal Body -->
+      <div class="teams-modal-body">
+        <!-- Dual Action Grid: ส่งทันที vs ตั้งเวลา -->
+        <div class="teams-action-grid">
+          <!-- Card 1: ส่งทันที (Send Immediately) -->
+          <div class="teams-action-card">
+            <div class="teams-card-header">
+              <span class="teams-card-icon">🚀</span>
+              <div>
+                <h3 class="teams-card-title">1. ส่งแจ้งเตือนทันที (Send Now)</h3>
+                <p class="teams-card-desc">ส่งข้อมูลการผลิตและโหมดที่แนะนำปัจจุบันเข้ากลุ่ม MS Teams ทันที</p>
+              </div>
+            </div>
+
+            <div class="teams-card-content">
+              <div class="teams-field-group">
+                <label for="teams-quick-note">หมายเหตุเพิ่มเติม (Optional Note):</label>
+                <input
+                  type="text"
+                  id="teams-quick-note"
+                  class="teams-input"
+                  placeholder="เช่น ทดสอบส่งข้อมูล หรือคำแนะนำเร่งด่วนประจำกะ..."
+                />
+              </div>
+
+              <div class="teams-current-badge">
+                🎯 โหมดที่จะส่ง: <strong id="teams-preview-rec-mode">1. C3 Max Mode</strong>
+                (<span id="teams-preview-inv">Inventory 50.81%</span>)
+              </div>
+
+              <button type="button" id="btn-teams-send-now" class="btn-teams-primary">
+                <span class="btn-icon">⚡</span>
+                <span>ส่งเข้า MS Teams ทันที</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Card 2: ตั้งเวลาส่งประจำวัน (Schedule) -->
+          <div class="teams-action-card">
+            <div class="teams-card-header">
+              <span class="teams-card-icon">⏰</span>
+              <div>
+                <h3 class="teams-card-title">2. ตั้งเวลาส่งประจำวัน (Daily Schedule)</h3>
+                <p class="teams-card-desc">ส่งสรุปแจ้งเตือนอัตโนมัติเข้ากลุ่ม MS Teams ตามรอบเวลาที่กำหนด</p>
+              </div>
+            </div>
+
+            <div class="teams-card-content">
+              <!-- Switch On/Off -->
+              <div class="teams-switch-row">
+                <label class="teams-switch-label" for="teams-schedule-toggle">
+                  เปิดใช้งานการแจ้งเตือนอัตโนมัติประจำวัน
+                </label>
+                <label class="teams-toggle-switch">
+                  <input type="checkbox" id="teams-schedule-toggle" />
+                  <span class="teams-toggle-slider"></span>
+                </label>
+              </div>
+
+              <!-- Time Selector 1: รอบเช้า -->
+              <div class="teams-time-picker-row">
+                <label for="teams-schedule-time-1">☀️ รอบที่ 1 (เช้า):</label>
+                <div class="teams-time-input-wrap">
+                  <input type="time" id="teams-schedule-time-1" class="teams-time-input" value="08:00" />
+                  <span class="teams-time-suffix">น.</span>
+                </div>
+              </div>
+
+              <!-- Time Selector 2: รอบค่ำ -->
+              <div class="teams-time-picker-row">
+                <label for="teams-schedule-time-2">🌙 รอบที่ 2 (ค่ำ):</label>
+                <div class="teams-time-input-wrap">
+                  <input type="time" id="teams-schedule-time-2" class="teams-time-input" value="20:00" />
+                  <span class="teams-time-suffix">น.</span>
+                </div>
+              </div>
+
+              <!-- Quick Time Preset Buttons -->
+              <div class="teams-presets-row">
+                <span class="teams-preset-label">รูปแบบเวลา:</span>
+                <button type="button" class="btn-time-preset active" data-t1="08:00" data-t2="20:00">⭐ 08:00 & 20:00 (2 รอบ)</button>
+                <button type="button" class="btn-time-preset" data-t1="08:00" data-t2="">08:00 (เช้า)</button>
+                <button type="button" class="btn-time-preset" data-t1="12:00" data-t2="">12:00 (เที่ยง)</button>
+                <button type="button" class="btn-time-preset" data-t1="20:00" data-t2="">20:00 (ค่ำ)</button>
+              </div>
+
+              <div id="teams-schedule-hint" class="teams-schedule-hint">
+                💡 ปิดการตั้งเวลาอยู่: เปิดสวิตช์และกดปุ่มบันทึกเพื่อเริ่มส่งแจ้งเตือนทุกวัน
+              </div>
+
+              <button type="button" id="btn-teams-save-schedule" class="btn-teams-secondary">
+                <span>💾 บันทึกการตั้งเวลา</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Live Message Preview -->
+        <div class="teams-preview-section">
+          <div class="teams-preview-header">
+            <h4>📋 ตัวอย่างข้อความที่จะปรากฏใน MS Teams</h4>
+            <span class="teams-preview-tag">Adaptive Card / Markdown</span>
+          </div>
+          <div id="teams-message-preview" class="teams-preview-box">
+            <!-- Dynamically populated by JS -->
+          </div>
+        </div>
+
+        <!-- Section 4: Webhook Configuration & Send History -->
+        <div class="teams-settings-accordion">
+          <details>
+            <summary>⚙️ ตั้งค่า Webhook URL & ประวัติการส่งล่าสุด (คลิกเพื่อเปิด)</summary>
+            <div class="teams-accordion-body">
+              <div class="teams-field-group">
+                <label for="teams-webhook-url">Power Automate Webhook URL:</label>
+                <div class="teams-url-input-row">
+                  <input
+                    type="url"
+                    id="teams-webhook-url"
+                    class="teams-input-mono"
+                    placeholder="https://...powerplatform.com/.../invoke?..."
+                  />
+                  <button type="button" id="btn-teams-save-url" class="btn-teams-mini">บันทึก URL</button>
+                </div>
+              </div>
+
+              <div class="teams-logs-wrap">
+                <h5>ประวัติการส่งล่าสุด (Recent Send Logs):</h5>
+                <div id="teams-logs-list" class="teams-logs-list">
+                  <div class="teams-log-empty">ยังไม่มีประวัติการส่งในรอบนี้</div>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- Section 5: Guide to Embed in MS Teams (Website Tab) -->
+        <div class="teams-embed-guide-box">
+          <details>
+            <summary>🌐 วิธีนำหน้าเว็บนี้ไปฝังใน Microsoft Teams (Website Tab)</summary>
+            <div class="teams-embed-guide-content">
+              <ol>
+                <li>เปิด <strong>Microsoft Teams</strong> แล้วไปที่ห้องแชนแนล (Channel) หรือกลุ่มที่ต้องการ</li>
+                <li>คลิกปุ่ม <strong>"+" (Add a tab / เพิ่มแท็บ)</strong> บนแถบเมนูด้านบนของแชนแนล</li>
+                <li>ค้นหาและคลิกเลือกแอป <strong>"Website" (เว็บไซต์)</strong></li>
+                <li>ใส่ชื่อแท็บ เช่น <code>3D SMART BOARD</code> และวาง <strong>HTTPS URL</strong> เช่น <code>https://172.20.250.127:8443</code> (หรือ <code>https://localhost:8443</code>)</li>
+                <li>กด <strong>"Save" (บันทึก)</strong> — ระบบจะแสดงแดชบอร์ด 3D SMART BOARD ใน MS Teams ให้ทีมงานใช้งานได้ทันที</li>
+              </ol>
+              <div class="teams-embed-tip">
+                💡 <em>หมายเหตุ: เซิร์ฟเวอร์รองรับ HTTPS โดยตรงที่พอร์ต <strong>8443</strong> พร้อมใบรับรองความปลอดภัยที่สร้างให้อัตโนมัติ (หรือหากเปิดผ่านบราวเซอร์ทั่วไป สามารถเข้า <code>http://172.20.250.127:8080</code> ได้เช่นกัน)</em>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       PTT 3D SMART BOARD - SECURE LOGIN OVERLAY
+       Protects dashboard until user enters valid credentials
+       ==================================================================== -->
+  <div id="login-overlay" class="login-overlay" role="dialog" aria-modal="true" aria-labelledby="login-title">
+    <div class="login-backdrop"></div>
+    <div class="login-modal-box">
+      <!-- Glow ambient decorative elements -->
+      <div class="login-glow-orb login-glow-orb-1"></div>
+      <div class="login-glow-orb login-glow-orb-2"></div>
+
+      <div class="login-card-inner">
+        <!-- Logo & Header -->
+        <div class="login-brand-header">
+          <div class="login-logo-wrap">
+            <svg class="login-ptt-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="pttBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#0284c7" />
+                  <stop offset="100%" stop-color="#0369a1" />
+                </linearGradient>
+                <linearGradient id="pttRed" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#ef4444" />
+                  <stop offset="100%" stop-color="#b91c1c" />
+                </linearGradient>
+              </defs>
+              <circle cx="50" cy="50" r="46" fill="#0b1e47" stroke="#38bdf8" stroke-width="2.5" />
+              <path d="M50 16 C38 32, 28 44, 28 58 C28 72, 38 82, 50 82 C62 82, 72 72, 72 58 C72 44, 62 32, 50 16 Z" fill="url(#pttBlue)" />
+              <path d="M50 30 C43 42, 36 50, 36 60 C36 70, 43 76, 50 76 C57 76, 64 70, 64 60 C64 50, 57 42, 50 30 Z" fill="url(#pttRed)" />
+              <path d="M50 44 C46 51, 42 56, 42 62 C42 68, 46 71, 50 71 C54 71, 58 68, 58 62 C58 56, 54 51, 50 44 Z" fill="#ffffff" />
+            </svg>
+          </div>
+          <div class="login-titles">
+            <span class="login-top-tag">PTT GSP PRODUCTION INTELLIGENCE</span>
+            <h2 id="login-title" class="login-app-title">3D SMART BOARD</h2>
+            <p class="login-app-desc">ระบบแนะนำโหมดการผลิตก๊าซฯ อัจฉริยะแบบ Real-Time</p>
+          </div>
+        </div>
+
+        <!-- Alert Notification Box -->
+        <div id="login-alert" class="login-alert hidden" role="alert">
+          <span class="login-alert-icon">⚠️</span>
+          <span id="login-alert-msg" class="login-alert-text">ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง</span>
+        </div>
+
+        <!-- Credentials Form -->
+        <form id="login-form" class="login-form" autocomplete="on">
+          <div class="login-input-group">
+            <label for="login-username">ชื่อผู้ใช้งาน (Username):</label>
+            <div class="login-field-wrap">
+              <span class="login-field-icon">👤</span>
+              <input
+                type="text"
+                id="login-username"
+                name="username"
+                class="login-text-input"
+                placeholder="กรอกชื่อผู้ใช้งาน..."
+                required
+                autocomplete="username"
+                spellcheck="false"
+              />
+            </div>
+          </div>
+
+          <div class="login-input-group">
+            <label for="login-password">รหัสผ่าน (Password):</label>
+            <div class="login-field-wrap">
+              <span class="login-field-icon">🔒</span>
+              <input
+                type="password"
+                id="login-password"
+                name="password"
+                class="login-text-input"
+                placeholder="กรอกรหัสผ่าน..."
+                required
+                autocomplete="current-password"
+              />
+              <button type="button" id="btn-toggle-pwd" class="login-eye-btn" title="แสดง/ซ่อนรหัสผ่าน" tabindex="-1">
+                👁️
+              </button>
+            </div>
+          </div>
+
+          <div class="login-remember-row">
+            <label class="login-checkbox-label">
+              <input type="checkbox" id="login-remember" checked />
+              <span class="login-checkbox-custom"></span>
+              <span class="login-checkbox-text">จดจำการเข้าสู่ระบบ (Remember Me)</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btn-login-submit" class="login-submit-btn">
+            <span class="login-btn-spinner hidden" id="login-spinner"></span>
+            <span class="login-btn-icon" id="login-btn-icon">⚡</span>
+            <span id="login-btn-text">เข้าสู่ระบบ (Sign In)</span>
+          </button>
+        </form>
+
+        <div class="login-card-footer">
+          <span class="login-lock-badge">🛡️ เข้ารหัสความปลอดภัย SHA-256 | อนุญาตเฉพาะเจ้าหน้าที่ ปตท. เท่านั้น</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="html2canvas.min.js"></script>
+  <script src="script.js?v=20261024"></script>
+</body>
+</html>

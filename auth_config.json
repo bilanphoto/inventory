@@ -1,0 +1,7 @@
+{
+  "description": "PTT 3D SMART BOARD Authentication Configuration",
+  "salt": "ptt_gsp_salt_2026",
+  "authHash": "5747b8ca95b6179f51c02e61bc83a75b71ac9cc64062f6642381a646d7ca2d0c",
+  "userHash": "a14a9eba57bca5f3e4d7abba45ca2261cc2dce23961b5e7a3f56ed214133222d",
+  "sessionTimeoutHours": 24
+}

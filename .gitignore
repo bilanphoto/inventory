@@ -1,0 +1,6 @@
+.DS_Store
+*.pem
+latest_dashboard.jpg
+Screenshot*.png
+__pycache__/
+*.pyc
