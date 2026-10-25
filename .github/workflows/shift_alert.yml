@@ -1,0 +1,25 @@
+name: PTT Smart Board Shift Alert (08:00 & 20:00)
+
+on:
+  schedule:
+    # รันอัตโนมัติทุกวันเวลา 08:00 น. และ 20:00 น. เวลาไทย (UTC+7)
+    # 08:00 Thai = 01:00 UTC
+    # 20:00 Thai = 13:00 UTC
+    - cron: '0 1,13 * * *'
+  workflow_dispatch: # ช่วยให้มีปุ่มกดทดสอบรันสดได้ตลอดเวลา
+
+jobs:
+  send-shift-alert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Alert Action
+        run: |
+          python3 alert_action.py
