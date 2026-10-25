@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261025" />
+  <link rel="stylesheet" href="styles.css?v=20261025b" />
 </head>
 <body>
   <div class="viewport-wrapper">
@@ -103,7 +103,7 @@
             class="gsp-open-btn"
             title="ดึงค่า Propane, LPG, NGL จากเว็บ GSP Daily Report (Tank Farm)"
           >
-            <span>🔗 GSP Propane 50.81%</span>
+            <span>🔗 GSP Propane 68.17%</span>
           </button>
         </div>
 
@@ -119,7 +119,7 @@
             max="100"
             step="0.01"
             class="board-input input-tank-pct"
-            value="50.81"
+            value="68.17"
             title="ระดับสินค้าคงคลัง (%) — เชื่อมโยงเงื่อนไข Flowchart (>60%, >70%)"
           />
           <span class="unit-suffix tank-pct-suffix">%</span>
@@ -132,7 +132,7 @@
             type="text"
             inputmode="numeric"
             class="board-input input-ton-val"
-            value="12,400"
+            value="13,634"
             title="ปริมาณสินค้าคงคลังปัจจุบัน (Ton)"
           />
           <span class="sep-slash">/</span>
@@ -290,7 +290,7 @@
             max="100"
             step="0.01"
             class="board-input input-ai-pct"
-            value="50.81"
+            value="68.17"
             title="Inventory (%)"
           />
           <span class="ai-unit-pct">%</span>
@@ -491,8 +491,8 @@
         </div>
         <div class="fc-control-item">
           <label for="fc-slider-inv">Inventory (%):</label>
-          <input type="range" id="fc-slider-inv" min="0" max="100" step="0.01" value="50.81" />
-          <span id="fc-inv-readout" class="fc-readout">50.81%</span>
+          <input type="range" id="fc-slider-inv" min="0" max="100" step="0.01" value="68.17" />
+          <span id="fc-inv-readout" class="fc-readout">68.17%</span>
         </div>
         <div class="fc-presets">
           <button type="button" class="fc-preset-btn" data-preset="c3_no">ทดสอบ C3 Max (NO)</button>
@@ -672,11 +672,11 @@
             <div class="gsp-tank-title">Propane</div>
             <div class="gsp-tank-visual">
               <div class="gsp-val-box">
-                <input id="inp-gsp-propane" type="number" step="0.01" min="0" max="100" value="50.81" />
+                <input id="inp-gsp-propane" type="number" step="0.01" min="0" max="100" value="68.17" />
                 <span>%</span>
               </div>
               <div class="gsp-vbar-track">
-                <div id="bar-gsp-propane" class="gsp-vbar-fill" style="height: 50.81%;"></div>
+                <div id="bar-gsp-propane" class="gsp-vbar-fill" style="height: 68.17%;"></div>
               </div>
             </div>
             <button type="button" class="gsp-apply-mini" data-val-key="propanePct" data-target="inventory">ใช้เป็น Inventory %</button>
@@ -687,11 +687,11 @@
             <div class="gsp-tank-title">LPG</div>
             <div class="gsp-tank-visual">
               <div class="gsp-val-box">
-                <input id="inp-gsp-lpg" type="number" step="0.01" min="0" max="100" value="35.46" />
+                <input id="inp-gsp-lpg" type="number" step="0.01" min="0" max="100" value="36.19" />
                 <span>%</span>
               </div>
               <div class="gsp-vbar-track">
-                <div id="bar-gsp-lpg" class="gsp-vbar-fill" style="height: 35.46%;"></div>
+                <div id="bar-gsp-lpg" class="gsp-vbar-fill" style="height: 36.19%;"></div>
               </div>
             </div>
             <button type="button" class="gsp-apply-mini" data-val-key="lpgPct" data-target="inventory">ใช้เป็น Inventory %</button>
@@ -702,22 +702,22 @@
             <div class="gsp-tank-title">NGL</div>
             <div class="gsp-tank-visual">
               <div class="gsp-val-box">
-                <input id="inp-gsp-ngl" type="number" step="0.01" min="0" max="100" value="55.48" />
+                <input id="inp-gsp-ngl" type="number" step="0.01" min="0" max="100" value="62.39" />
                 <span>%</span>
               </div>
               <div class="gsp-vbar-track">
-                <div id="bar-gsp-ngl" class="gsp-vbar-fill" style="height: 55.48%;"></div>
+                <div id="bar-gsp-ngl" class="gsp-vbar-fill" style="height: 62.39%;"></div>
               </div>
             </div>
             <button type="button" class="gsp-apply-mini" data-val-key="nglPct" data-target="inventory">ใช้เป็น Inventory %</button>
           </div>
         </div>
 
-        <!-- Propane + LPG = 38.80 % -->
+        <!-- Propane + LPG = 43.17 % -->
         <div class="gsp-sum-banner">
           <div class="gsp-sum-label">Propane + LPG =</div>
           <div class="gsp-sum-bar">
-            <input id="inp-gsp-sum" type="number" step="0.01" min="0" max="100" value="38.80" />
+            <input id="inp-gsp-sum" type="number" step="0.01" min="0" max="100" value="43.17" />
             <span>%</span>
           </div>
           <div class="gsp-sum-actions">
@@ -807,8 +807,8 @@
               </div>
 
               <div class="teams-current-badge">
-                🎯 โหมดที่จะส่ง: <strong id="teams-preview-rec-mode">1. C3 Max Mode</strong>
-                (<span id="teams-preview-inv">Inventory 50.81%</span>)
+                🎯 โหมดที่จะส่ง: <strong id="teams-preview-rec-mode">2. Optimize Mode</strong>
+                (<span id="teams-preview-inv">Inventory 68.17%</span>)
               </div>
 
               <button type="button" id="btn-teams-send-now" class="btn-teams-primary">
@@ -1045,6 +1045,6 @@
   </div>
 
   <script src="html2canvas.min.js"></script>
-  <script src="script.js?v=20261025"></script>
+  <script src="script.js?v=20261025b"></script>
 </body>
 </html>

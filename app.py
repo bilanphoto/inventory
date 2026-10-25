@@ -74,14 +74,14 @@ CURRENT_STATE = {
     "dateText": _init_date,
     "timeText": _init_time,
     # Card 1: Inventory
-    "inventoryPct": 50.81,  # Propane % from GSP Daily Report
-    "inventoryTon": 10162,
+    "inventoryPct": 68.17,  # Propane % from GSP Daily Report (Tank Farm)
+    "inventoryTon": 13634,
     "inventoryCap": 20000,
     # Card 2: Tank Farm Demand
     "demandPct": 70,
     "demandTon": 14000,
     "demandCap": 20000,
-    "remainingTon": 6000,
+    "remainingTon": 6366,
     "tanksUsed": 7,
     "tanksTotal": 10,
     # Card 3: Product Price
@@ -96,15 +96,15 @@ CURRENT_STATE = {
     "crossC3ToLpg": True,
     # GSP Daily Report Tank Farm Values (from https://gspdailyreport.pttplc.com/DailyReport/Index)
     "gspData": {
-        "propanePct": 50.81,
-        "lpgPct": 35.46,
-        "nglPct": 55.48,
-        "propanePlusLpgPct": 38.80,
+        "propanePct": 68.17,
+        "lpgPct": 36.19,
+        "nglPct": 62.39,
+        "propanePlusLpgPct": 43.17,
         "plant": "Tank Farm",
-        "meetingDate": "20/10/2026",
+        "meetingDate": "25/10/2026",
         "targetField": "inventory",  # 'inventory' | 'demand' | 'none'
-        "sourceMetric": "propanePlusLpgPct",  # 'propanePlusLpgPct' | 'propanePct' | 'lpgPct' | 'nglPct'
-        "lastSync": "20/10/2026 15:09",
+        "sourceMetric": "propanePct",  # 'propanePct' | 'lpgPct' | 'nglPct' | 'propanePlusLpgPct'
+        "lastSync": "25/10/2026 09:30",
         "syncMethod": "ready",
     },
     # Production Modes configuration (editable numbers)
@@ -505,10 +505,10 @@ def build_teams_payload(
         f"- 🔥 **ต้นทุนพลังงาน (Energy Price):** **{energy_price} MMBtu/Ton** ({energy_chg})",
         "",
         "### 🌐 ข้อมูลจริงจาก GSP Daily Report (Tank Farm):",
-        f"- **Propane:** {gsp.get('propanePct', 50.81):.2f}%",
-        f"- **LPG:** {gsp.get('lpgPct', 35.46):.2f}%",
-        f"- **NGL:** {gsp.get('nglPct', 55.48):.2f}%",
-        f"- **Propane + LPG =** {gsp.get('propanePlusLpgPct', 38.80):.2f}%",
+        f"- **Propane:** {gsp.get('propanePct', 68.17):.2f}%",
+        f"- **LPG:** {gsp.get('lpgPct', 36.19):.2f}%",
+        f"- **NGL:** {gsp.get('nglPct', 62.39):.2f}%",
+        f"- **Propane + LPG =** {gsp.get('propanePlusLpgPct', 43.17):.2f}%",
         "",
         "### ⚙️ การตัดสินใจเลือกโหมด (Flowchart):",
         f"- Cross C3 to LPG: **{cross_c3}**",
@@ -616,10 +616,10 @@ def build_teams_payload(
         {
             "type": "FactSet",
             "facts": [
-                {"title": "Propane:", "value": f"{gsp.get('propanePct', 50.81):.2f}%"},
-                {"title": "LPG:", "value": f"{gsp.get('lpgPct', 35.46):.2f}%"},
-                {"title": "NGL:", "value": f"{gsp.get('nglPct', 55.48):.2f}%"},
-                {"title": "Propane + LPG:", "value": f"{gsp.get('propanePlusLpgPct', 38.80):.2f}%"},
+                {"title": "Propane:", "value": f"{gsp.get('propanePct', 68.17):.2f}%"},
+                {"title": "LPG:", "value": f"{gsp.get('lpgPct', 36.19):.2f}%"},
+                {"title": "NGL:", "value": f"{gsp.get('nglPct', 62.39):.2f}%"},
+                {"title": "Propane + LPG:", "value": f"{gsp.get('propanePlusLpgPct', 43.17):.2f}%"},
             ],
         },
         {

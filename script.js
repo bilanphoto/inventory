@@ -33,14 +33,14 @@
     dateText: initialDateTime.dateText,
     timeText: initialDateTime.timeText,
     // Card 1: Inventory
-    inventoryPct: 50.81, // ค่าเริ่มต้นจาก GSP Daily Report: Propane %
-    inventoryTon: 10162,
+    inventoryPct: 68.17, // ค่าจริงจาก GSP Daily Report (Tank Farm): Propane %
+    inventoryTon: 13634,
     inventoryCap: 20000,
     // Card 2: Tank Farm Demand
     demandPct: 70,
     demandTon: 14000,
     demandCap: 20000,
-    remainingTon: 6000,
+    remainingTon: 6366,
     tanksUsed: 7,
     tanksTotal: 10,
     // Card 3: Product Price
@@ -55,10 +55,10 @@
     crossC3ToLpg: true,
     // GSP Daily Report Tank Farm Values (from https://gspdailyreport.pttplc.com/DailyReport/Index)
     gspData: {
-      propanePct: 50.81,
-      lpgPct: 35.46,
-      nglPct: 55.48,
-      propanePlusLpgPct: 38.80,
+      propanePct: 68.17,
+      lpgPct: 36.19,
+      nglPct: 62.39,
+      propanePlusLpgPct: 43.17,
     },
     // 3 Production Modes
     modes: {
@@ -1086,6 +1086,14 @@
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed?.data) {
+            // Upgrade obsolete 50.81 initial placeholder to current real GSP values
+            if (parsed.data.propanePct === 50.81) {
+              parsed.data.propanePct = 68.17;
+              parsed.data.lpgPct = 36.19;
+              parsed.data.nglPct = 62.39;
+              parsed.data.propanePlusLpgPct = 43.17;
+              saveGspCache(parsed.data);
+            }
             Object.assign(state.gspData, parsed.data);
             if (parsed.data.propanePct != null) {
               updateInvPct(parsed.data.propanePct);
