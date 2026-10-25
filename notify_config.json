@@ -1,0 +1,13 @@
+{
+  "webhookUrl": "https://defaultf2fda5e72ea1450d9fc12af5f86300.95.environment.api.powerplatform.com/powerautomate/automations/direct/cu/18/workflows/904ec45ba2f343b0bf609507bba19298/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=P7wxp36yBmVsRRsQL6hEIYzC7BoO9r8IUQrmM8_9Xfc",
+  "scheduleEnabled": true,
+  "scheduleTimes": [
+    "08:00",
+    "20:00"
+  ],
+  "scheduleTime": "08:00, 20:00",
+  "lastSent": null,
+  "lastStatus": null,
+  "lastError": null,
+  "sendLogs": []
+}

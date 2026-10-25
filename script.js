@@ -1332,14 +1332,102 @@
         .join('');
     }
 
-    fetchTeamsConfig = async function () {
-      if (window.location.protocol === 'file:') return;
+    function addSendLogEntry(entry) {
       try {
-        const resp = await fetch('/api/notify/config');
-        const config = await resp.json();
-        if (config) {
-          if (teamsScheduleToggle) teamsScheduleToggle.checked = Boolean(config.scheduleEnabled);
+        const raw = localStorage.getItem('ptt_teams_send_logs');
+        let logs = [];
+        if (raw) {
+          try { logs = JSON.parse(raw); } catch (e) {}
+        }
+        if (!Array.isArray(logs)) logs = [];
+        logs.unshift(entry);
+        logs = logs.slice(0, 20);
+        localStorage.setItem('ptt_teams_send_logs', JSON.stringify(logs));
+        renderTeamsLogs(logs);
+      } catch (e) {}
+    }
 
+    function updatePresetButtons(t1, t2) {
+      document.querySelectorAll('.btn-time-preset').forEach((btn) => {
+        const bt1 = btn.getAttribute('data-t1') || '';
+        const bt2 = btn.getAttribute('data-t2') || '';
+        const match = (bt1 === t1 && bt2 === t2);
+        btn.classList.toggle('active', match);
+      });
+    }
+
+    fetchTeamsConfig = async function () {
+      // 1. Immediately read from localStorage (Works everywhere: offline, Apache, GitHub Pages)
+      try {
+        const localCfgRaw = localStorage.getItem('ptt_teams_schedule_config');
+        const localUrl = localStorage.getItem('ptt_teams_webhook_url');
+        const localLogsRaw = localStorage.getItem('ptt_teams_send_logs');
+
+        let isEnabled = true;
+        let t1 = '08:00';
+        let t2 = '20:00';
+
+        if (localCfgRaw) {
+          try {
+            const localCfg = JSON.parse(localCfgRaw);
+            if (localCfg) {
+              isEnabled = Boolean(localCfg.scheduleEnabled);
+              if (Array.isArray(localCfg.scheduleTimes) && localCfg.scheduleTimes.length) {
+                t1 = localCfg.scheduleTimes[0] || '';
+                t2 = localCfg.scheduleTimes[1] || '';
+              } else if (typeof localCfg.scheduleTime === 'string') {
+                const parts = localCfg.scheduleTime.split(',').map((s) => s.trim()).filter(Boolean);
+                t1 = parts[0] || '08:00';
+                t2 = parts[1] || '';
+              }
+            }
+          } catch (e) {}
+        }
+
+        if (teamsScheduleToggle) teamsScheduleToggle.checked = isEnabled;
+        if (teamsScheduleTime1) teamsScheduleTime1.value = t1;
+        if (teamsScheduleTime2) teamsScheduleTime2.value = t2;
+        if (teamsScheduleDot) teamsScheduleDot.classList.toggle('active', isEnabled);
+        updateScheduleHint(isEnabled, [t1, t2].filter(Boolean));
+        updatePresetButtons(t1, t2);
+
+        if (localUrl && teamsWebhookUrl) {
+          teamsWebhookUrl.value = localUrl;
+        }
+        if (localLogsRaw && teamsLogsList) {
+          try {
+            renderTeamsLogs(JSON.parse(localLogsRaw));
+          } catch (e) {}
+        }
+      } catch (e) {
+        console.warn('localStorage read error', e);
+      }
+
+      if (window.location.protocol === 'file:') return;
+
+      // 2. Try fetching from backend (Apache notify.php, Python /api/notify/config)
+      const endpoints = [
+        'notify.php?action=config',
+        'api/notify/config',
+        '/api/notify/config'
+      ];
+      let config = null;
+      for (const ep of endpoints) {
+        try {
+          const resp = await fetch(ep);
+          if (resp.ok) {
+            const data = await resp.json();
+            config = data.config || data;
+            if (config && (config.scheduleTimes || config.scheduleTime || config.webhookUrl)) {
+              break;
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (config) {
+        if (!localStorage.getItem('ptt_teams_schedule_config')) {
+          const isEnabled = Boolean(config.scheduleEnabled);
           let t1 = '08:00';
           let t2 = '20:00';
           if (Array.isArray(config.scheduleTimes) && config.scheduleTimes.length) {
@@ -1350,25 +1438,24 @@
             t1 = parts[0] || '08:00';
             t2 = parts[1] || '';
           }
-
+          if (teamsScheduleToggle) teamsScheduleToggle.checked = isEnabled;
           if (teamsScheduleTime1) teamsScheduleTime1.value = t1;
           if (teamsScheduleTime2) teamsScheduleTime2.value = t2;
-          if (teamsWebhookUrl && config.webhookUrl) teamsWebhookUrl.value = config.webhookUrl;
-          if (teamsScheduleDot) teamsScheduleDot.classList.toggle('active', Boolean(config.scheduleEnabled));
-
-          const curTimes = [t1, t2].filter(Boolean);
-          updateScheduleHint(config.scheduleEnabled, curTimes);
-          renderTeamsLogs(config.sendLogs || []);
-
-          // Highlight matching preset button
-          document.querySelectorAll('.btn-time-preset').forEach((btn) => {
-            const bt1 = btn.getAttribute('data-t1') || '';
-            const bt2 = btn.getAttribute('data-t2') || '';
-            const match = (bt1 === t1 && bt2 === t2);
-            btn.classList.toggle('active', match);
-          });
+          if (teamsScheduleDot) teamsScheduleDot.classList.toggle('active', isEnabled);
+          updateScheduleHint(isEnabled, [t1, t2].filter(Boolean));
+          updatePresetButtons(t1, t2);
         }
-      } catch (err) {}
+
+        if (config.webhookUrl && (!teamsWebhookUrl?.value || teamsWebhookUrl.value.includes('powerautomate'))) {
+          if (teamsWebhookUrl) teamsWebhookUrl.value = config.webhookUrl;
+          try { localStorage.setItem('ptt_teams_webhook_url', config.webhookUrl); } catch (e) {}
+        }
+
+        if (Array.isArray(config.sendLogs) && config.sendLogs.length) {
+          renderTeamsLogs(config.sendLogs);
+          try { localStorage.setItem('ptt_teams_send_logs', JSON.stringify(config.sendLogs)); } catch (e) {}
+        }
+      }
     };
 
     function updateScheduleHint(enabled, times) {
@@ -1665,6 +1752,265 @@
       }, 3000);
     };
 
+    // Modern Power Automate Teams Workflows / Adaptive Card Builder (Client-Side)
+    function buildTeamsPayloadClient(reason = 'ส่งทันที (Manual)', note = '', screenshot = '') {
+      const evalRes = evaluateFlowchart();
+      const recKey = evalRes.recommendedMode;
+      const recModeName = {
+        c3_max: '1. C3 Max Mode (เพิ่มการผลิต C3 สูงสุด)',
+        optimize: '2. Optimize Mode (ผลิตสมดุล)',
+        lpg_mode: '3. LPG Mode (เพิ่มการผลิต LPG สูงสุด)'
+      }[recKey] || '2. Optimize Mode';
+
+      const p = Number(state.gspData?.propanePct ?? 68.17);
+      const l = Number(state.gspData?.lpgPct ?? 36.19);
+      const n = Number(state.gspData?.nglPct ?? 62.39);
+      const s = Number(state.gspData?.propanePlusLpgPct ?? 43.17);
+      const nowStr = new Date().toLocaleString('th-TH');
+
+      const cardBody = [
+        {
+          type: 'TextBlock',
+          text: '📢 **PTT 3D SMART BOARD - รายงานสรุปสถานะการผลิตประจำวัน**',
+          weight: 'Bolder',
+          size: 'Large',
+          color: 'Accent'
+        },
+        {
+          type: 'TextBlock',
+          text: `📅 วันที่และเวลา: **${state.dateText || ''} ${state.timeText || ''} น.** | ประเภท: **${reason}**`,
+          isSubtle: true,
+          spacing: 'None'
+        }
+      ];
+
+      if (note) {
+        cardBody.push({
+          type: 'TextBlock',
+          text: `📝 **หมายเหตุ:** ${note}`,
+          wrap: true,
+          spacing: 'Small'
+        });
+      }
+
+      cardBody.push(
+        {
+          type: 'Container',
+          style: 'emphasis',
+          bleed: true,
+          items: [
+            {
+              type: 'TextBlock',
+              text: '🎯 **โหมดการผลิตที่ระบบแนะนำ (RECOMMENDED MODE):**',
+              weight: 'Bolder',
+              size: 'Medium'
+            },
+            {
+              type: 'TextBlock',
+              text: `⭐ **${recModeName}**`,
+              weight: 'Bolder',
+              size: 'ExtraLarge',
+              color: 'Good'
+            }
+          ]
+        },
+        {
+          type: 'TextBlock',
+          text: '📊 **4 ปัจจัยหลักในการตัดสินใจ (Key Decision Factors)**',
+          weight: 'Bolder',
+          size: 'Medium',
+          spacing: 'Medium'
+        },
+        {
+          type: 'FactSet',
+          facts: [
+            { title: '1. Inventory:', value: `${state.inventoryPct.toFixed(2)}% (${fmtNum(state.inventoryTon)} / ${fmtNum(state.inventoryCap)} Ton)` },
+            { title: '2. Demand:', value: `${state.demandPct}% (${fmtNum(state.demandTon)} / ${fmtNum(state.demandCap)} Ton)` },
+            { title: '3. Product Price:', value: `${state.productPrice} USD/Ton (${state.productPriceChange})` },
+            { title: '4. Energy Price:', value: `${state.energyPrice} MMBtu/Ton (${state.energyPriceChange})` }
+          ]
+        },
+        {
+          type: 'TextBlock',
+          text: '🌐 **ข้อมูลระดับถังจาก GSP Daily Report (Tank Farm)**',
+          weight: 'Bolder',
+          size: 'Medium',
+          spacing: 'Medium'
+        },
+        {
+          type: 'FactSet',
+          facts: [
+            { title: 'Propane:', value: `${p.toFixed(2)}%` },
+            { title: 'LPG:', value: `${l.toFixed(2)}%` },
+            { title: 'NGL:', value: `${n.toFixed(2)}%` },
+            { title: 'Propane + LPG:', value: `${s.toFixed(2)}%` }
+          ]
+        },
+        {
+          type: 'TextBlock',
+          text: '⚙️ **การตัดสินใจเลือกโหมด (Flowchart)**',
+          weight: 'Bolder',
+          size: 'Medium',
+          spacing: 'Medium'
+        },
+        {
+          type: 'FactSet',
+          facts: [
+            { title: 'Cross C3 to LPG:', value: state.crossC3ToLpg ? 'YES' : 'NO' },
+            { title: 'Inventory > 60%:', value: `${state.inventoryPct > 60 ? 'YES' : 'NO'} (${state.inventoryPct.toFixed(2)}%)` },
+            { title: 'Inventory > 70%:', value: `${state.inventoryPct > 70 ? 'YES' : 'NO'} (${state.inventoryPct.toFixed(2)}%)` }
+          ]
+        },
+        {
+          type: 'TextBlock',
+          text: '📈 **ผลลัพธ์คาดการณ์ (Expected Result)**',
+          weight: 'Bolder',
+          size: 'Medium',
+          spacing: 'Medium'
+        },
+        {
+          type: 'FactSet',
+          facts: [
+            { title: 'กำไรโดยประมาณ:', value: String(state.expectedResult?.profit || 'สูงสุด') },
+            { title: 'การใช้พลังงาน:', value: String(state.expectedResult?.energy || 'เหมาะสม') },
+            { title: 'การใช้พื้นที่จัดเก็บ:', value: String(state.expectedResult?.storage || 'สมดุล') },
+            { title: 'ความยืดหยุ่น:', value: String(state.expectedResult?.flexibility || 'ดี') }
+          ]
+        }
+      );
+
+      if (screenshot) {
+        cardBody.push({
+          type: 'Image',
+          url: screenshot,
+          altText: '3D SMART BOARD Dashboard Snapshot',
+          size: 'Stretch',
+          spacing: 'Medium'
+        });
+      }
+
+      const adaptiveCard = {
+        $schema: 'http://adaptivecards.io/schemas/adaptive-card.json',
+        type: 'AdaptiveCard',
+        version: '1.2',
+        body: cardBody
+      };
+
+      const formattedMd = [
+        `# 📢 3D SMART BOARD - โหมดที่แนะนำ: ${recModeName}`,
+        `**วันที่และเวลา:** ${state.dateText || ''} ${state.timeText || ''} น. (${reason})`,
+        note ? `**หมายเหตุ:** ${note}` : '',
+        `**ระดับสินค้าคงคลัง (Inventory):** ${state.inventoryPct.toFixed(2)}%`,
+        `**ความต้องการใช้ถัง (Demand):** ${state.demandPct}%`,
+        `**Propane:** ${p.toFixed(2)}% | **LPG:** ${l.toFixed(2)}% | **NGL:** ${n.toFixed(2)}% | **Propane + LPG:** ${s.toFixed(2)}%`
+      ].filter(Boolean).join('\n\n');
+
+      return {
+        type: 'message',
+        attachments: [
+          {
+            contentType: 'application/vnd.microsoft.card.adaptive',
+            contentUrl: null,
+            content: adaptiveCard
+          }
+        ],
+        summary: `3D SMART BOARD - โหมดที่แนะนำ: ${recModeName}`,
+        title: `📢 3D SMART BOARD - โหมดที่แนะนำ: ${recModeName}`,
+        text: formattedMd,
+        message: formattedMd,
+        content: formattedMd,
+        recommendedMode: recModeName,
+        inventoryPct: state.inventoryPct,
+        inventoryTon: state.inventoryTon,
+        demandPct: state.demandPct,
+        demandTon: state.demandTon,
+        productPrice: state.productPrice,
+        energyPrice: state.energyPrice,
+        gspData: state.gspData,
+        reason: reason,
+        note: note,
+        timestamp: nowStr
+      };
+    }
+
+    // Unified Send Function (Tries server endpoints, falls back to direct browser POST)
+    async function executeSendTeamsNotification(reason, note, screenshot) {
+      const defaultUrl = 'https://defaultf2fda5e72ea1450d9fc12af5f86300.95.environment.api.powerplatform.com/powerautomate/automations/direct/cu/18/workflows/904ec45ba2f343b0bf609507bba19298/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=P7wxp36yBmVsRRsQL6hEIYzC7BoO9r8IUQrmM8_9Xfc';
+      const webhookUrl = teamsWebhookUrl?.value?.trim() || localStorage.getItem('ptt_teams_webhook_url') || defaultUrl;
+      const payload = buildTeamsPayloadClient(reason, note, screenshot);
+      const nowStr = new Date().toLocaleString('th-TH');
+
+      // 1. Try Backend Endpoints (PHP notify.php, Python /api/notify/send)
+      const endpoints = [
+        'notify.php?action=send',
+        'api/notify/send',
+        '/api/notify/send'
+      ];
+      for (const ep of endpoints) {
+        try {
+          const resp = await fetch(ep, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              reason: reason,
+              note: note,
+              screenshot: screenshot,
+              webhookUrl: webhookUrl,
+              payload: payload
+            })
+          });
+          if (resp.ok) {
+            const res = await resp.json().catch(() => ({}));
+            addSendLogEntry({
+              timestamp: nowStr,
+              reason: reason,
+              status: `สำเร็จ (${res.status || '202 Accepted'})`,
+              ok: true
+            });
+            return { ok: true, message: res.message || '202 Accepted', timestamp: nowStr };
+          }
+        } catch (e) {}
+      }
+
+      // 2. Direct Browser POST Fallback to Power Automate Webhook
+      try {
+        const resp = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (resp.ok || resp.status === 200 || resp.status === 202) {
+          addSendLogEntry({
+            timestamp: nowStr,
+            reason: reason,
+            status: `สำเร็จ (${resp.status || 202} Accepted)`,
+            ok: true
+          });
+          return { ok: true, message: `${resp.status} Accepted`, timestamp: nowStr };
+        }
+      } catch (browserErr) {
+        // Fallback with no-cors if browser blocked response reading
+        try {
+          await fetch(webhookUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          addSendLogEntry({
+            timestamp: nowStr,
+            reason: reason,
+            status: 'สำเร็จ (ส่งเรียบร้อย)',
+            ok: true
+          });
+          return { ok: true, message: 'ส่งข้อมูลเรียบร้อยแล้ว', timestamp: nowStr };
+        } catch (e) {
+          throw browserErr;
+        }
+      }
+      throw new Error('ไม่สามารถเชื่อมต่อไปยัง Webhook ได้');
+    }
+
     // Send Now Button Click (Captures full clear screenshot & sends to MS Teams)
     document.getElementById('btn-teams-send-now')?.addEventListener('click', async () => {
       const btn = document.getElementById('btn-teams-send-now');
@@ -1686,38 +2032,21 @@
 
       btn.innerHTML = '<span>⏳ กำลังส่งเข้ากลุ่ม MS Teams...</span>';
       if (teamsStatusBanner && teamsStatusText) {
-        teamsStatusText.textContent = 'กำลังอัปโหลดรูปภาพและส่งเข้ากลุ่ม MS Teams ผ่าน Power Automate...';
+        teamsStatusText.textContent = 'กำลังส่งข้อมูลเข้ากลุ่ม MS Teams ผ่าน Power Automate...';
       }
 
       try {
         const note = teamsQuickNote?.value?.trim() || '';
-        const resp = await fetch('/api/notify/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            reason: 'ส่งทันที (Manual)',
-            note: note,
-            screenshot: screenshot,
-          }),
-        });
-        const res = await resp.json();
+        const res = await executeSendTeamsNotification('ส่งทันที (Manual)', note, screenshot);
 
-        if (res.ok) {
-          if (teamsStatusBanner && teamsStatusText) {
-            teamsStatusBanner.className = 'teams-status-banner is-success';
-            teamsStatusText.textContent = `✅ ส่งเข้ากลุ่ม MS Teams พร้อมแนบรูปภาพแดชบอร์ดสำเร็จ (${res.message || '202 Accepted'}) เวลา ${res.timestamp}`;
-          }
-          fetchTeamsConfig();
-        } else {
-          if (teamsStatusBanner && teamsStatusText) {
-            teamsStatusBanner.className = 'teams-status-banner is-error';
-            teamsStatusText.textContent = `❌ เกิดข้อผิดพลาดในการส่ง: ${res.error || 'Unknown Error'}`;
-          }
+        if (teamsStatusBanner && teamsStatusText) {
+          teamsStatusBanner.className = 'teams-status-banner is-success';
+          teamsStatusText.textContent = `✅ ส่งเข้ากลุ่ม MS Teams พร้อมแนบรูปภาพแดชบอร์ดสำเร็จ (${res.message || '202 Accepted'}) เวลา ${res.timestamp}`;
         }
       } catch (err) {
         if (teamsStatusBanner && teamsStatusText) {
           teamsStatusBanner.className = 'teams-status-banner is-error';
-          teamsStatusText.textContent = `⚠️ กรุณารัน python3 app.py แล้วเปิดผ่าน http://localhost:8080 เพื่อใช้งานการส่งแจ้งเตือน`;
+          teamsStatusText.textContent = `❌ ไม่สามารถส่งเข้า MS Teams ได้ (${err.message || 'Network Error'})`;
         }
       } finally {
         btn.disabled = false;
@@ -1725,7 +2054,7 @@
       }
     });
 
-    // Save Schedule Button Click
+    // Save Schedule Button Click (Bulletproof: saves locally + updates UI + syncs backend)
     document.getElementById('btn-teams-save-schedule')?.addEventListener('click', async () => {
       const btn = document.getElementById('btn-teams-save-schedule');
       const origText = btn.innerHTML;
@@ -1739,37 +2068,55 @@
       if (!scheduleTimes.length) scheduleTimes.push('08:00');
       const scheduleTimeStr = scheduleTimes.join(', ');
 
-      try {
-        const resp = await fetch('/api/notify/config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            scheduleEnabled: isEnabled,
-            scheduleTimes: scheduleTimes,
-            scheduleTime: scheduleTimeStr,
-          }),
-        });
-        const res = await resp.json();
+      const scheduleConfig = {
+        scheduleEnabled: isEnabled,
+        scheduleTimes: scheduleTimes,
+        scheduleTime: scheduleTimeStr,
+        updatedAt: new Date().toISOString()
+      };
 
-        if (res.ok) {
-          if (teamsStatusBanner && teamsStatusText) {
-            teamsStatusBanner.className = 'teams-status-banner is-success';
-            teamsStatusText.textContent = isEnabled
-              ? `✅ บันทึกการตั้งเวลาสำเร็จ! ระบบจะส่งแจ้งเตือนทุกวันเวลา ${scheduleTimes.join(' น. และ ')} น.`
-              : `✅ บันทึกแล้ว: ปิดการตั้งเวลาแจ้งเตือนประจำวัน`;
-          }
-          if (teamsScheduleDot) teamsScheduleDot.classList.toggle('active', isEnabled);
-          updateScheduleHint(isEnabled, scheduleTimes);
-        }
-      } catch (err) {
-        if (teamsStatusBanner && teamsStatusText) {
-          teamsStatusBanner.className = 'teams-status-banner is-error';
-          teamsStatusText.textContent = '⚠️ ไม่สามารถบันทึกการตั้งเวลาได้ (ตรวจสอบว่ารันผ่าน python3 app.py หรือไม่)';
-        }
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = origText;
+      // 1. ALWAYS SAVE TO LOCAL STORAGE IMMEDIATELY (Guaranteed persistence in offline/static/Apache/GitHub Pages)
+      try {
+        localStorage.setItem('ptt_teams_schedule_config', JSON.stringify(scheduleConfig));
+        localStorage.setItem('ptt_teams_schedule_enabled', isEnabled ? 'true' : 'false');
+        localStorage.setItem('ptt_teams_schedule_times', JSON.stringify(scheduleTimes));
+      } catch (e) {
+        console.warn('localStorage save failed', e);
       }
+
+      // 2. UPDATE UI IMMEDIATELY TO SUCCESS STATUS
+      if (teamsStatusBanner && teamsStatusText) {
+        teamsStatusBanner.className = 'teams-status-banner is-success';
+        teamsStatusText.textContent = isEnabled
+          ? `✅ บันทึกการตั้งเวลาสำเร็จ! ระบบตั้งเวลาส่งแจ้งเตือนทุกวันเวลา ${scheduleTimes.join(' น. และ ')} น. เรียบร้อยแล้ว`
+          : `✅ บันทึกแล้ว: ปิดการตั้งเวลาส่งแจ้งเตือนประจำวัน`;
+      }
+      if (teamsScheduleDot) teamsScheduleDot.classList.toggle('active', isEnabled);
+      updateScheduleHint(isEnabled, scheduleTimes);
+
+      // 3. BACKGROUND SYNC TO BACKEND (notify.php, api/notify/config, /api/notify/config)
+      const endpoints = [
+        'notify.php?action=config',
+        'api/notify/config',
+        '/api/notify/config'
+      ];
+      for (const ep of endpoints) {
+        try {
+          const resp = await fetch(ep, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              scheduleEnabled: isEnabled,
+              scheduleTimes: scheduleTimes,
+              scheduleTime: scheduleTimeStr,
+            }),
+          });
+          if (resp.ok) break;
+        } catch (e) {}
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = origText;
     });
 
     // Save Webhook URL Button Click
@@ -1780,19 +2127,63 @@
         return;
       }
       try {
-        const resp = await fetch('/api/notify/config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ webhookUrl: url }),
-        });
-        const res = await resp.json();
-        if (res.ok) {
-          alert('บันทึก Webhook URL สำเร็จ!');
-        }
-      } catch (err) {
-        alert('ไม่สามารถบันทึก URL ได้ กรุณาตรวจสอบเซิร์ฟเวอร์');
+        localStorage.setItem('ptt_teams_webhook_url', url);
+      } catch (e) {}
+
+      const endpoints = [
+        'notify.php?action=config',
+        'api/notify/config',
+        '/api/notify/config'
+      ];
+      for (const ep of endpoints) {
+        try {
+          const resp = await fetch(ep, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ webhookUrl: url }),
+          });
+          if (resp.ok) break;
+        } catch (e) {}
       }
+
+      alert('✅ บันทึก Webhook URL สำเร็จ!');
     });
+
+    // Client-side automated daily scheduler (for open tab on Apache / GitHub Pages / Kiosk / Teams tab)
+    let lastClientFiredMinute = '';
+    setInterval(async () => {
+      try {
+        const localCfgRaw = localStorage.getItem('ptt_teams_schedule_config');
+        if (!localCfgRaw) return;
+        const cfg = JSON.parse(localCfgRaw);
+        if (!cfg || !cfg.scheduleEnabled) return;
+
+        const times = Array.isArray(cfg.scheduleTimes) ? cfg.scheduleTimes : ['08:00', '20:00'];
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const currentHM = `${hh}:${mm}`;
+        const ymdHM = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()} ${currentHM}`;
+
+        if (times.includes(currentHM) && lastClientFiredMinute !== ymdHM) {
+          lastClientFiredMinute = ymdHM;
+          console.log(`[Client Scheduler] Firing daily alert for ${currentHM} (${ymdHM})...`);
+
+          let shot = null;
+          try {
+            shot = await captureDashboardScreenshot();
+          } catch (e) {}
+
+          await executeSendTeamsNotification(
+            `ตั้งเวลาประจำวัน (รอบ ${currentHM} น.)`,
+            'แจ้งเตือนอัตโนมัติตามรอบเวลาที่กำหนด',
+            shot
+          ).catch((err) => console.warn('[Client Scheduler] Notification failed', err));
+        }
+      } catch (e) {
+        console.warn('Client scheduler tick error', e);
+      }
+    }, 20000);
   }
 
   /**

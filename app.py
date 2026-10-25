@@ -150,7 +150,7 @@ CURRENT_STATE = {
     # MS Teams Notification Configuration (Power Automate Webhook)
     "notifyConfig": {
         "webhookUrl": DEFAULT_TEAMS_WEBHOOK_URL,
-        "scheduleEnabled": False,
+        "scheduleEnabled": True,
         "scheduleTimes": ["08:00", "20:00"],
         "scheduleTime": "08:00, 20:00",
         "lastSent": None,
@@ -159,6 +159,30 @@ CURRENT_STATE = {
         "sendLogs": [],
     },
 }
+
+NOTIFY_CONFIG_FILE = os.path.join(BASE_DIR, "notify_config.json")
+
+def load_notify_config():
+    if os.path.exists(NOTIFY_CONFIG_FILE):
+        try:
+            with open(NOTIFY_CONFIG_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                if isinstance(saved, dict):
+                    CURRENT_STATE.setdefault("notifyConfig", {}).update(saved)
+                    print(f"[Notify] Loaded notification config: {CURRENT_STATE['notifyConfig'].get('scheduleTimes')}")
+        except Exception as e:
+            print(f"[Notify] Error loading notify_config.json: {e}")
+
+def save_notify_config(cfg: dict = None):
+    try:
+        if cfg is None:
+            cfg = CURRENT_STATE.get("notifyConfig", {})
+        with open(NOTIFY_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[Notify] Error saving notify_config.json: {e}")
+
+load_notify_config()
 
 
 def parse_gsp_text_or_html(content: str) -> dict:
@@ -736,6 +760,7 @@ def send_teams_notification(
             logs = config.setdefault("sendLogs", [])
             logs.insert(0, log_entry)
             config["sendLogs"] = logs[:20]
+            save_notify_config(config)
 
             return {
                 "ok": True,
@@ -758,6 +783,7 @@ def send_teams_notification(
         logs = config.setdefault("sendLogs", [])
         logs.insert(0, log_entry)
         config["sendLogs"] = logs[:20]
+        save_notify_config(config)
         return {"ok": False, "error": err_msg}
     except Exception as e:
         err_msg = str(e)
@@ -773,6 +799,7 @@ def send_teams_notification(
         logs = config.setdefault("sendLogs", [])
         logs.insert(0, log_entry)
         config["sendLogs"] = logs[:20]
+        save_notify_config(config)
         return {"ok": False, "error": err_msg}
 
 
@@ -851,12 +878,12 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
                     del ACTIVE_SESSIONS[token]
             self._send_json({"authenticated": False}, status=401)
             return
-        if parsed.path == "/api/state":
+        if parsed.path in ("/api/state", "/3dc3/api/state"):
             evaluation = evaluate_flowchart(CURRENT_STATE)
             self._send_json({"state": CURRENT_STATE, "evaluation": evaluation})
             return
-        if parsed.path == "/api/notify/config":
-            self._send_json(CURRENT_STATE.get("notifyConfig", {}))
+        if parsed.path in ("/api/notify/config", "/3dc3/api/notify/config", "/notify/config", "/3dc3/notify/config", "/notify.php"):
+            self._send_json({"ok": True, "config": CURRENT_STATE.get("notifyConfig", {})})
             return
         if parsed.path == "/api/fetch-gsp":
             # Try reading from open Chrome tab first, then fallback to direct HTTPS
@@ -932,7 +959,7 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
             self._send_json({"state": CURRENT_STATE, "evaluation": evaluation})
             return
 
-        if parsed.path == "/api/notify/send":
+        if parsed.path in ("/api/notify/send", "/3dc3/api/notify/send", "/notify/send", "/3dc3/notify/send"):
             reason = data.get("reason", "ส่งทันที (Manual)")
             note = data.get("note", "")
             screenshot = data.get("screenshot", "")
@@ -940,7 +967,7 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
             self._send_json(res)
             return
 
-        if parsed.path == "/api/sync-screenshot":
+        if parsed.path in ("/api/sync-screenshot", "/3dc3/api/sync-screenshot"):
             screenshot_b64 = data.get("screenshot", "")
             if screenshot_b64:
                 try:
@@ -959,7 +986,7 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
             self._send_json({"ok": False, "error": "No screenshot provided"}, status=400)
             return
 
-        if parsed.path == "/api/notify/config":
+        if parsed.path in ("/api/notify/config", "/3dc3/api/notify/config", "/notify/config", "/3dc3/notify/config"):
             config = CURRENT_STATE.setdefault("notifyConfig", {})
             if "webhookUrl" in data and isinstance(data["webhookUrl"], str):
                 config["webhookUrl"] = data["webhookUrl"].strip()
@@ -975,6 +1002,7 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
             elif "scheduleTime" in data and isinstance(data["scheduleTime"], str):
                 config["scheduleTime"] = data["scheduleTime"].strip()
                 config["scheduleTimes"] = [t.strip() for t in config["scheduleTime"].replace(";", ",").split(",") if t.strip()]
+            save_notify_config(config)
             self._send_json({"ok": True, "config": config})
             return
 
