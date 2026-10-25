@@ -458,8 +458,9 @@ def build_teams_payload(
     eval_res = evaluate_flowchart(state)
     flow = eval_res.get("flowchart", {})
     rec_mode_name = flow.get("recommendedLabel", "1. C3 Max Mode")
+    rec_key = flow.get("recommendedMode", "optimize")
 
-    inv_pct = state.get("inventoryPct", 50.81)
+    inv_pct = state.get("inventoryPct", 68.17)
     inv_ton = state.get("inventoryTon", 10162)
     inv_cap = state.get("inventoryCap", 20000)
 
@@ -534,10 +535,11 @@ def build_teams_payload(
         f"- **NGL:** {gsp.get('nglPct', 62.39):.2f}%",
         f"- **Propane + LPG =** {gsp.get('propanePlusLpgPct', 43.17):.2f}%",
         "",
-        "### ⚙️ การตัดสินใจเลือกโหมด (Flowchart):",
-        f"- Cross C3 to LPG: **{cross_c3}**",
-        f"- Inventory > 60%: **{'YES' if inv_pct > 60 else 'NO'}** ({inv_pct:.2f}%)",
-        f"- Inventory > 70%: **{'YES' if inv_pct > 70 else 'NO'}** ({inv_pct:.2f}%)",
+        "### ⚙️ การเลือกโหมดการผลิต (3 Production Modes):",
+        f"- **1. C3 Max Mode:** {'YES (★ เลือกโหมดนี้)' if rec_key == 'c3_max' else 'NO'}",
+        f"- **2. Optimize Mode:** {'YES (★ เลือกโหมดนี้)' if rec_key == 'optimize' else 'NO'}",
+        f"- **3. LPG Mode:** {'YES (★ เลือกโหมดนี้)' if rec_key == 'lpg_mode' else 'NO'}",
+        f"👉 **โหมดที่ระบบเลือก:** ⭐ **{rec_mode_name}** (จาก Inventory {inv_pct:.2f}% > 60% แต่ยังไม่เกิน 70%)",
         "",
         "### 📈 ผลลัพธ์คาดการณ์ (Expected Result):",
         f"- กำไรโดยประมาณ: **{exp.get('profit', 'สูงสุด')}**",
@@ -648,7 +650,7 @@ def build_teams_payload(
         },
         {
             "type": "TextBlock",
-            "text": "⚙️ **การตัดสินใจเลือกโหมด (Flowchart)**",
+            "text": "⚙️ **การเลือกโหมดการผลิต (3 Production Modes)**",
             "weight": "Bolder",
             "size": "Medium",
             "spacing": "Medium",
@@ -656,10 +658,17 @@ def build_teams_payload(
         {
             "type": "FactSet",
             "facts": [
-                {"title": "Cross C3 to LPG:", "value": str(cross_c3)},
-                {"title": "Inventory > 60%:", "value": f"{'YES' if inv_pct > 60 else 'NO'} ({inv_pct:.2f}%)"},
-                {"title": "Inventory > 70%:", "value": f"{'YES' if inv_pct > 70 else 'NO'} ({inv_pct:.2f}%)"},
+                {"title": "1. C3 Max Mode:", "value": "YES (★ เลือกโหมดนี้)" if rec_key == "c3_max" else "NO"},
+                {"title": "2. Optimize Mode:", "value": "YES (★ เลือกโหมดนี้)" if rec_key == "optimize" else "NO"},
+                {"title": "3. LPG Mode:", "value": "YES (★ เลือกโหมดนี้)" if rec_key == "lpg_mode" else "NO"},
             ],
+        },
+        {
+            "type": "TextBlock",
+            "text": f"👉 **โหมดที่เลือก:** ⭐ **{rec_mode_name}** (จากเงื่อนไข Inventory {inv_pct:.2f}% อยู่ระหว่าง 60% - 70%)",
+            "weight": "Bolder",
+            "wrap": True,
+            "spacing": "Small",
         },
         {
             "type": "TextBlock",

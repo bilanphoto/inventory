@@ -1311,17 +1311,18 @@
     }
 
     function renderTeamsPreviewText() {
+      const evalRes = evaluateFlowchart();
+      const recKey = evalRes.recommendedMode;
       const modeLabel = getRecommendedModeLabel();
-      const p = state.gspData?.propanePct ?? 50.81;
-      const l = state.gspData?.lpgPct ?? 35.46;
-      const n = state.gspData?.nglPct ?? 55.48;
-      const s = state.gspData?.propanePlusLpgPct ?? 38.80;
+      const p = Number(state.gspData?.propanePct ?? 68.17);
+      const l = Number(state.gspData?.lpgPct ?? 36.19);
+      const n = Number(state.gspData?.nglPct ?? 62.39);
+      const s = Number(state.gspData?.propanePlusLpgPct ?? 43.17);
       const note = teamsQuickNote?.value?.trim() || '';
 
       const lines = [
         `📢 รายงาน 3D SMART BOARD (PTT)`,
         `โหมดการผลิตที่แนะนำ: 🎯 ${modeLabel}`,
-        `📸 แนบรูปภาพ: ภาพหน้าจอแดชบอร์ดทั้งหน้า (Full 3D Smart Board Snapshot) คมชัดสูง`,
         `ระดับสินค้าคงคลัง (Inventory): ${state.inventoryPct.toFixed(2)}% (${fmtNum(state.inventoryTon)} / ${fmtNum(state.inventoryCap)} Ton)`,
         `ความต้องการใช้ถัง (Demand): ${state.demandPct}% (${fmtNum(state.demandTon)} / ${fmtNum(state.demandCap)} Ton)`,
         `ราคาผลิตภัณฑ์: ${state.productPrice} USD/Ton (${state.productPriceChange})`,
@@ -1333,10 +1334,12 @@
         `• NGL: ${n.toFixed(2)}%`,
         `• Propane + LPG = ${s.toFixed(2)}%`,
         ``,
-        `⚙️ Flowchart Decision:`,
-        `• Cross C3 to LPG: ${state.crossC3ToLpg ? 'YES' : 'NO'}`,
-        `• Inventory > 60%: ${state.inventoryPct > 60 ? 'YES' : 'NO'} (${state.inventoryPct.toFixed(2)}%)`,
-        `• Inventory > 70%: ${state.inventoryPct > 70 ? 'YES' : 'NO'} (${state.inventoryPct.toFixed(2)}%)`,
+        `⚙️ การเลือกโหมดการผลิต (3 Production Modes):`,
+        `• 1. C3 Max Mode: ${recKey === 'c3_max' ? 'YES (★ เลือกโหมดนี้)' : 'NO'}`,
+        `• 2. Optimize Mode: ${recKey === 'optimize' ? 'YES (★ เลือกโหมดนี้)' : 'NO'}`,
+        `• 3. LPG Mode: ${recKey === 'lpg_mode' ? 'YES (★ เลือกโหมดนี้)' : 'NO'}`,
+        `👉 โหมดที่ระบบเลือก: ${modeLabel}`,
+        `💡 เหตุผล: ระดับ Inventory ${state.inventoryPct.toFixed(2)}% > 60% แต่ยังไม่เกิน 70% จึงเลือก Optimize Mode (ผลิตสมดุล)`,
         ``,
         `📈 ผลลัพธ์คาดการณ์:`,
         `• กำไรโดยประมาณ: ${state.expectedResult.profit} | การใช้พลังงาน: ${state.expectedResult.energy}`,
@@ -1827,8 +1830,11 @@
         `### 🌐 ข้อมูลระดับถังจาก GSP Daily Report (Tank Farm)`,
         `• **Propane:** ${p.toFixed(2)}% | **LPG:** ${l.toFixed(2)}% | **NGL:** ${n.toFixed(2)}% | **Propane + LPG:** ${s.toFixed(2)}%`,
         ``,
-        `### ⚙️ การตัดสินใจเลือกโหมด (Flowchart)`,
-        `• Cross C3 to LPG: ${state.crossC3ToLpg ? 'YES' : 'NO'} | Inventory > 60%: ${state.inventoryPct > 60 ? 'YES' : 'NO'} (${state.inventoryPct.toFixed(2)}%) | Inventory > 70%: ${state.inventoryPct > 70 ? 'YES' : 'NO'} (${state.inventoryPct.toFixed(2)}%)`,
+        `### ⚙️ การเลือกโหมดการผลิต (3 Production Modes)`,
+        `• 1. C3 Max Mode: **${recKey === 'c3_max' ? 'YES (★ เลือกโหมดนี้)' : 'NO'}**`,
+        `• 2. Optimize Mode: **${recKey === 'optimize' ? 'YES (★ เลือกโหมดนี้)' : 'NO'}**`,
+        `• 3. LPG Mode: **${recKey === 'lpg_mode' ? 'YES (★ เลือกโหมดนี้)' : 'NO'}**`,
+        `👉 **โหมดที่ระบบเลือก:** ⭐ **${recModeName}** (จาก Inventory ${state.inventoryPct.toFixed(2)}% > 60% แต่ยังไม่เกิน 70%)`,
         ``,
         `🔗 [เปิดดูหน้าแดชบอร์ด 3D SMART BOARD](https://bilanphoto.github.io/inventory/)`
       ].filter(Boolean).join('\n');
@@ -1936,7 +1942,7 @@
         },
         {
           type: 'TextBlock',
-          text: '⚙️ **การตัดสินใจเลือกโหมด (Flowchart)**',
+          text: '⚙️ **การเลือกโหมดการผลิต (3 Production Modes)**',
           weight: 'Bolder',
           size: 'Medium',
           spacing: 'Medium'
@@ -1944,10 +1950,17 @@
         {
           type: 'FactSet',
           facts: [
-            { title: 'Cross C3 to LPG:', value: state.crossC3ToLpg ? 'YES' : 'NO' },
-            { title: 'Inventory > 60%:', value: `${state.inventoryPct > 60 ? 'YES' : 'NO'} (${state.inventoryPct.toFixed(2)}%)` },
-            { title: 'Inventory > 70%:', value: `${state.inventoryPct > 70 ? 'YES' : 'NO'} (${state.inventoryPct.toFixed(2)}%)` }
+            { title: '1. C3 Max Mode:', value: recKey === 'c3_max' ? 'YES (★ เลือกโหมดนี้)' : 'NO' },
+            { title: '2. Optimize Mode:', value: recKey === 'optimize' ? 'YES (★ เลือกโหมดนี้)' : 'NO' },
+            { title: '3. LPG Mode:', value: recKey === 'lpg_mode' ? 'YES (★ เลือกโหมดนี้)' : 'NO' }
           ]
+        },
+        {
+          type: 'TextBlock',
+          text: `👉 **โหมดที่เลือก:** ⭐ **${recModeName}** (จากเงื่อนไข Inventory ${state.inventoryPct.toFixed(2)}% อยู่ระหว่าง 60% - 70%)`,
+          weight: 'Bolder',
+          wrap: true,
+          spacing: 'Small'
         },
         {
           type: 'TextBlock',
