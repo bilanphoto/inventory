@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261025_settings_flowchart_v7" />
+  <link rel="stylesheet" href="styles.css?v=20261025_sanitize_v8" />
 </head>
 <body>
   <div class="viewport-wrapper">
@@ -640,48 +640,15 @@
             </div>
           </div>
 
-          <!-- Section 4: Webhook Configuration & Send History -->
+          <!-- Section 4: ประวัติการส่งแจ้งเตือนล่าสุด -->
           <div class="teams-settings-accordion">
             <details>
-              <summary>⚙️ ตั้งค่า Webhook URL & ประวัติการส่งล่าสุด (คลิกเพื่อเปิด)</summary>
+              <summary>📋 ประวัติการส่งแจ้งเตือนล่าสุด (Send History)</summary>
               <div class="teams-accordion-body">
-                <div class="teams-field-group">
-                  <label for="teams-webhook-url">Power Automate Webhook URL:</label>
-                  <div class="teams-url-input-row">
-                    <input
-                      type="url"
-                      id="teams-webhook-url"
-                      class="teams-input-mono"
-                      placeholder="https://...powerplatform.com/.../invoke?..."
-                    />
-                    <button type="button" id="btn-teams-save-url" class="btn-teams-mini">บันทึก URL</button>
-                  </div>
-                </div>
-
                 <div class="teams-logs-wrap">
-                  <h5>ประวัติการส่งล่าสุด (Recent Send Logs):</h5>
                   <div id="teams-logs-list" class="teams-logs-list">
                     <div class="teams-log-empty">ยังไม่มีประวัติการส่งในรอบนี้</div>
                   </div>
-                </div>
-              </div>
-            </details>
-          </div>
-
-          <!-- Section 5: Guide to Embed in MS Teams (Website Tab) -->
-          <div class="teams-embed-guide-box">
-            <details>
-              <summary>🌐 วิธีนำหน้าเว็บนี้ไปฝังใน Microsoft Teams (Website Tab)</summary>
-              <div class="teams-embed-guide-content">
-                <ol>
-                  <li>เปิด <strong>Microsoft Teams</strong> แล้วไปที่ห้องแชนแนล (Channel) หรือกลุ่มที่ต้องการ</li>
-                  <li>คลิกปุ่ม <strong>"+" (Add a tab / เพิ่มแท็บ)</strong> บนแถบเมนูด้านบนของแชนแนล</li>
-                  <li>ค้นหาและคลิกเลือกแอป <strong>"Website" (เว็บไซต์)</strong></li>
-                  <li>ใส่ชื่อแท็บ เช่น <code>3D SMART BOARD</code> และวาง <strong>HTTPS URL</strong> เช่น <code>https://172.20.250.127:8443</code> (หรือ <code>https://localhost:8443</code>)</li>
-                  <li>กด <strong>"Save" (บันทึก)</strong> — ระบบจะแสดงแดชบอร์ด 3D SMART BOARD ใน MS Teams ให้ทีมงานใช้งานได้ทันที</li>
-                </ol>
-                <div class="teams-embed-tip">
-                  💡 <em>หมายเหตุ: เซิร์ฟเวอร์รองรับ HTTPS โดยตรงที่พอร์ต <strong>8443</strong> พร้อมใบรับรองความปลอดภัยที่สร้างให้อัตโนมัติ (หรือหากเปิดผ่านบราวเซอร์ทั่วไป สามารถเข้า <code>http://172.20.250.127:8080</code> ได้เช่นกัน)</em>
                 </div>
               </div>
             </details>
@@ -690,15 +657,12 @@
 
         <!-- Tab 2: ดึงข้อมูล GSP Report (Tank Farm) -->
         <div id="tab-pane-gsp" class="settings-tab-pane" data-tab="gsp">
-          <div class="gsp-header-action-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <span style="font-size: 13px; color: #475569; font-weight: 500;">
-              ที่มา: <code>https://gspdailyreport.pttplc.com/DailyReport/Index</code>
-            </span>
+          <div class="gsp-header-action-bar" style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 12px;">
             <button type="button" id="btn-fetch-gsp-now" class="gsp-sync-now-btn">🔄 ดึงค่าสดจากแท็บ Chrome</button>
           </div>
 
           <div id="gsp-status-banner" class="gsp-status-banner" style="margin-bottom: 14px; border-radius: 8px;">
-            <span>สถานะ: พบเซิร์ฟเวอร์ภายใน PTT (`Microsoft-IIS/10.0` + Azure AD SSO) — แสดงค่าล่าสุดจากหน้า Tank Farm</span>
+            <span>สถานะ: เชื่อมต่อระบบข้อมูลระดับถัง (Tank Farm) เรียบร้อยแล้ว</span>
           </div>
 
           <!-- Visual replica: Propane, LPG, NGL, Propane + LPG = -->
@@ -775,7 +739,7 @@
                 <span class="gsp-badge-rec">⭐ แนะนำ 1 คลิก</span>
               </div>
               <div style="font-size: 12px; color: #475569;">
-                ลากปุ่มสีฟ้าด้านล่างนี้ขึ้นไปวางบนแถบ <strong>ที่คั่นหน้า (Bookmark Bar)</strong> ของ Chrome (ทำครั้งเดียว) เมื่อเปิดหน้า <code>gspdailyreport.pttplc.com</code> ให้กดปุ่มนี้ 1 ครั้ง ข้อมูลจะถูกดึงเข้า 3D SMART BOARD ทันที:
+                ลากปุ่มสีฟ้าด้านล่างนี้ขึ้นไปวางบนแถบ <strong>ที่คั่นหน้า (Bookmark Bar)</strong> ของ Chrome (ทำครั้งเดียว) เมื่อเปิดหน้ารายงานประจำวัน ให้กดปุ่มนี้ 1 ครั้ง ข้อมูลจะถูกดึงเข้า 3D SMART BOARD ทันที:
               </div>
               <div class="gsp-bookmarklet-row">
                 <a id="btn-gsp-bookmarklet" class="gsp-bookmarklet-btn" href="#" title="ลากปุ่มนี้ขึ้นไปวางที่แถบบุ๊กมาร์กของ Google Chrome">
@@ -786,7 +750,7 @@
             </div>
 
             <div style="font-size: 11.5px; color: #64748b; line-height: 1.4;">
-              💻 <em>สำหรับการรันบนเครื่อง Mac (Localhost): สามารถเปิดหน้าเว็บ GSP ค้างไว้ใน Chrome แล้วกดปุ่ม "🔄 ดึงค่าสดจากแท็บ Chrome" ด้านบนได้เช่นกัน</em>
+              💻 <em>สำหรับการรันบนเครื่อง Mac (Localhost): สามารถเปิดหน้ารายงานประจำวันใน Chrome แล้วกดปุ่ม "🔄 ดึงค่าสดจากแท็บ Chrome" ด้านบนได้เช่นกัน</em>
             </div>
           </div>
         </div>
@@ -979,7 +943,6 @@
               <div class="user-info-wrap">
                 <div class="user-name-title">บัญชีผู้ใช้งาน: <span id="user-badge-name">oper_gsp</span></div>
                 <div class="user-role-badge">สิทธิ์การใช้งาน: เจ้าหน้าที่ควบคุมระบบปฏิบัติการ (GSP Operator)</div>
-                <div class="user-auth-status">🔒 ตรวจสอบสิทธิ์ผ่าน: Cryptographic Salted SHA-256 Signature</div>
               </div>
             </div>
 
@@ -1098,13 +1061,13 @@
         </form>
 
         <div class="login-card-footer">
-          <span class="login-lock-badge">🛡️ เข้ารหัสความปลอดภัย SHA-256 | อนุญาตเฉพาะเจ้าหน้าที่ ปตท. เท่านั้น</span>
+          <span class="login-lock-badge">🛡️ ระบบความปลอดภัยภายใน | อนุญาตเฉพาะเจ้าหน้าที่ ปตท. เท่านั้น</span>
         </div>
       </div>
     </div>
   </div>
 
   <script src="html2canvas.min.js"></script>
-  <script src="script.js?v=20261025_settings_flowchart_v7"></script>
+  <script src="script.js?v=20261025_sanitize_v8"></script>
 </body>
 </html>

@@ -45,9 +45,10 @@ function saveConfig($configFile, $config) {
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
-// GET: Return config
+// GET: Return config (strip sensitive webhookUrl from public responses)
 if ($method === 'GET' || ($method === 'POST' && $action === 'get_config')) {
     $cfg = getConfig($configFile);
+    unset($cfg['webhookUrl']);
     echo json_encode(['ok' => true, 'config' => $cfg]);
     exit;
 }

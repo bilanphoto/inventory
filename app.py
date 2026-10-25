@@ -928,7 +928,9 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
             self._send_json({"state": CURRENT_STATE, "evaluation": evaluation})
             return
         if parsed.path in ("/api/notify/config", "/3dc3/api/notify/config", "/notify/config", "/3dc3/notify/config", "/notify.php"):
-            self._send_json({"ok": True, "config": CURRENT_STATE.get("notifyConfig", {})})
+            cfg = dict(CURRENT_STATE.get("notifyConfig", {}))
+            cfg.pop("webhookUrl", None)
+            self._send_json({"ok": True, "config": cfg})
             return
         if parsed.path == "/api/fetch-gsp":
             # Try reading from open Chrome tab first, then fallback to direct HTTPS
@@ -1050,7 +1052,9 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
             if "scheduleDays" in data and isinstance(data["scheduleDays"], list):
                 config["scheduleDays"] = [d.strip() for d in data["scheduleDays"] if isinstance(d, str) and d.strip()]
             save_notify_config(config)
-            self._send_json({"ok": True, "config": config})
+            resp_cfg = dict(config)
+            resp_cfg.pop("webhookUrl", None)
+            self._send_json({"ok": True, "config": resp_cfg})
             return
 
         if parsed.path == "/api/gsp-sync":

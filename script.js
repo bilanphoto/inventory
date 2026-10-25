@@ -196,7 +196,7 @@
     energyBaseSeries: [2200, 2450, 2600, 2750, 2900, 3050, 3200],
     // Flowchart Condition: Cross C3 to LPG ?
     crossC3ToLpg: true,
-    // GSP Daily Report Tank Farm Values (from https://gspdailyreport.pttplc.com/DailyReport/Index)
+    // GSP Daily Report Tank Farm Values
     gspData: {
       propanePct: 68.17,
       lpgPct: 36.19,
@@ -1344,7 +1344,7 @@
       const btnBm = document.getElementById('btn-gsp-bookmarklet');
       if (!btnBm) return;
       const targetUrl = window.location.href.split('?')[0].split('#')[0];
-      const bmCode = `javascript:(function(){try{var t=document.body.innerText||document.body.textContent;var pM=t.match(/Propane[^\\d%]{0,30}(\\d+(?:\\.\\d+)?)\\s*%/i);var lM=t.match(/LPG[^\\d%]{0,30}(\\d+(?:\\.\\d+)?)\\s*%/i);var nM=t.match(/NGL[^\\d%]{0,30}(\\d+(?:\\.\\d+)?)\\s*%/i);var sM=t.match(/Propane\\s*\\+\\s*LPG[^\\d%]{0,30}(\\d+(?:\\.\\d+)?)\\s*%/i);var p=pM?pM[1]:'';var l=lM?lM[1]:'';var n=nM?nM[1]:'';var s=sM?sM[1]:'';if(!p){alert('⚠️ ไม่พบข้อมูลเปอร์เซ็นต์ในหน้านี้ กรุณาเปิดหน้า https://gspdailyreport.pttplc.com/DailyReport/Index แล้วกดปุ่มนี้อีกครั้ง');return;}try{var bc=new BroadcastChannel('ptt_gsp_sync_channel');bc.postMessage({propane:p,lpg:l,ngl:n,sum:s,time:new Date().toLocaleTimeString('th-TH')});}catch(e){}try{localStorage.setItem('ptt_gsp_synced_event',JSON.stringify({propane:p,lpg:l,ngl:n,sum:s,t:Date.now()}));}catch(e){}var target='${targetUrl}?p='+p+'&l='+l+'&n='+n+'&s='+s;window.open(target,'ptt_3d_smartboard');}catch(e){alert('Error: '+e.message);}})();`;
+      const bmCode = `javascript:(function(){try{var t=document.body.innerText||document.body.textContent;var pM=t.match(/Propane[^\\d%]{0,30}(\\d+(?:\\.\\d+)?)\\s*%/i);var lM=t.match(/LPG[^\\d%]{0,30}(\\d+(?:\\.\\d+)?)\\s*%/i);var nM=t.match(/NGL[^\\d%]{0,30}(\\d+(?:\\.\\d+)?)\\s*%/i);var sM=t.match(/Propane\\s*\\+\\s*LPG[^\\d%]{0,30}(\\d+(?:\\.\\d+)?)\\s*%/i);var p=pM?pM[1]:'';var l=lM?lM[1]:'';var n=nM?nM[1]:'';var s=sM?sM[1]:'';if(!p){alert('⚠️ ไม่พบข้อมูลเปอร์เซ็นต์ในหน้านี้ กรุณาเปิดหน้ารายงานประจำวันแล้วกดปุ่มนี้อีกครั้ง');return;}try{var bc=new BroadcastChannel('ptt_gsp_sync_channel');bc.postMessage({propane:p,lpg:l,ngl:n,sum:s,time:new Date().toLocaleTimeString('th-TH')});}catch(e){}try{localStorage.setItem('ptt_gsp_synced_event',JSON.stringify({propane:p,lpg:l,ngl:n,sum:s,t:Date.now()}));}catch(e){}var target='${targetUrl}?p='+p+'&l='+l+'&n='+n+'&s='+s;window.open(target,'ptt_3d_smartboard');}catch(e){alert('Error: '+e.message);}})();`;
       btnBm.href = bmCode;
     }
 
@@ -1398,7 +1398,7 @@
           if (isManualClick && isLocalHost) {
             statusBanner.textContent = '⚠️ กรุณารัน python3 app.py แล้วเปิดผ่าน http://localhost:8080 เพื่อใช้ฟีเจอร์ดึงค่าสดจากแท็บ Chrome';
           } else {
-            statusBanner.textContent = `🌐 โหมดออนไลน์: ข้อมูลอัปเดตล่าสุดจาก GSP Daily Report (Propane: ${p}%, LPG: ${l}%, NGL: ${n}%)`;
+            statusBanner.textContent = `🌐 โหมดออนไลน์: ข้อมูลอัปเดตล่าสุดจากรายงานประจำวัน (Propane: ${p}%, LPG: ${l}%, NGL: ${n}%)`;
           }
         }
       }
@@ -1414,7 +1414,7 @@
           const p = state.gspData?.propanePct ?? 50.81;
           const l = state.gspData?.lpgPct ?? 35.46;
           const n = state.gspData?.nglPct ?? 55.48;
-          statusBanner.textContent = `🌐 โหมดออนไลน์: ข้อมูลอัปเดตล่าสุดจาก GSP Daily Report (Propane: ${p}%, LPG: ${l}%, NGL: ${n}%)`;
+          statusBanner.textContent = `🌐 โหมดออนไลน์: ข้อมูลอัปเดตล่าสุดจากรายงานประจำวัน (Propane: ${p}%, LPG: ${l}%, NGL: ${n}%)`;
         }
       }
     });
@@ -1644,7 +1644,6 @@
       // 1. Immediately read from localStorage (Works everywhere: offline, Apache, GitHub Pages)
       try {
         const localCfgRaw = localStorage.getItem('ptt_teams_schedule_config');
-        const localUrl = localStorage.getItem('ptt_teams_webhook_url');
         const localLogsRaw = localStorage.getItem('ptt_teams_send_logs');
         const localDaysRaw = localStorage.getItem('ptt_teams_schedule_days');
 
@@ -1688,9 +1687,6 @@
         updateScheduleHint(isEnabled, [t1, t2].filter(Boolean), days);
         updatePresetButtons(t1, t2);
 
-        if (localUrl && teamsWebhookUrl) {
-          teamsWebhookUrl.value = localUrl;
-        }
         if (localLogsRaw && teamsLogsList) {
           try {
             renderTeamsLogs(JSON.parse(localLogsRaw));
@@ -1747,11 +1743,6 @@
           if (teamsScheduleDot) teamsScheduleDot.classList.toggle('active', isEnabled);
           updateScheduleHint(isEnabled, [t1, t2].filter(Boolean), days);
           updatePresetButtons(t1, t2);
-        }
-
-        if (config.webhookUrl && (!teamsWebhookUrl?.value || teamsWebhookUrl.value.includes('powerautomate'))) {
-          if (teamsWebhookUrl) teamsWebhookUrl.value = config.webhookUrl;
-          try { localStorage.setItem('ptt_teams_webhook_url', config.webhookUrl); } catch (e) {}
         }
 
         if (Array.isArray(config.sendLogs) && config.sendLogs.length) {
@@ -2781,7 +2772,7 @@
         }
       } catch (e) {}
 
-      // 3. Try PHP backend login.php (for Apache on 172.20.250.127/3dc3/)
+      // 3. Try PHP backend login.php
       try {
         const respPhp = await fetch('login.php', {
           method: 'POST',
