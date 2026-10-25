@@ -894,6 +894,19 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        if parsed.path in ("/api/time", "/time", "/3dc3/api/time"):
+            now = datetime.now()
+            d, t = get_current_thai_datetime()
+            self._send_json({
+                "ok": True,
+                "iso": now.isoformat(),
+                "timestamp": now.timestamp(),
+                "thaiDate": d,
+                "thaiTime": t,
+                "timezone": "Asia/Bangkok"
+            })
+            return
+
         if parsed.path in ("/api/auth/verify", "/api/verify"):
             auth_header = self.headers.get("Authorization", "")
             token = ""

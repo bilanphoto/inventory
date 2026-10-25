@@ -12,21 +12,159 @@
     'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
   ];
 
+  // ====================================================================
+  // Internet Time Sync Engine (เวลาอินเทอร์เน็ตสากล UTC+7 ประเทศไทย)
+  // ====================================================================
+  let internetTimeOffsetMs = 0;
+  let isInternetTimeSynced = false;
+  let userOverrodeDateTime = false;
+
+  function updateInternetTimeBadge(synced, sourceName = 'Internet Time') {
+    const dot = document.getElementById('dot-live-time');
+    const label = document.getElementById('txt-live-time-label');
+    const btn = document.getElementById('btn-sync-time');
+    if (dot) {
+      dot.className = synced ? 'live-pulse-dot' : 'live-pulse-dot is-fallback';
+    }
+    if (label) {
+      label.textContent = synced ? 'Internet Time' : 'Local Time';
+    }
+    if (btn) {
+      btn.title = synced
+        ? `🌐 ซิงค์เวลาจาก Internet Time (${sourceName}) สำเร็จ | เวลาประเทศไทย UTC+7`
+        : `⚠️ ใช้เวลาจากเครื่อง (${sourceName}) | คลิกเพื่อลองเชื่อมต่อ Internet Time ใหม่`;
+    }
+  }
+
+  async function fetchInternetTime() {
+    const startMs = Date.now();
+    const dot = document.getElementById('dot-live-time');
+    if (dot) dot.classList.add('is-syncing');
+
+    // 0. If running with backend (Python / Apache), try /api/time first
+    if (window.location.protocol !== 'file:') {
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 2000);
+        const res = await fetch('api/time', { signal: controller.signal, cache: 'no-store' });
+        clearTimeout(tid);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && (data.iso || data.timestamp)) {
+            const serverMs = data.timestamp ? data.timestamp * 1000 : new Date(data.iso).getTime();
+            const latency = (Date.now() - startMs) / 2;
+            internetTimeOffsetMs = (serverMs + latency) - Date.now();
+            isInternetTimeSynced = true;
+            console.log('[Internet Time] Synced via Server Time API (Offset:', internetTimeOffsetMs, 'ms)');
+            updateInternetTimeBadge(true, 'Server API');
+            syncLiveDateTime(true);
+            return true;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 1. Try TimeAPI.io (Asia/Bangkok)
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch('https://timeapi.io/api/time/current/zone?timeZone=Asia/Bangkok', {
+        signal: controller.signal,
+        cache: 'no-store'
+      });
+      clearTimeout(tid);
+      if (res.ok) {
+        const data = await res.json();
+        const iso = data.dateTime || data.currentLocalTime;
+        if (iso) {
+          const serverMs = new Date(iso).getTime();
+          const latency = (Date.now() - startMs) / 2;
+          internetTimeOffsetMs = (serverMs + latency) - Date.now();
+          isInternetTimeSynced = true;
+          console.log('[Internet Time] Synced via TimeAPI.io (Offset:', internetTimeOffsetMs, 'ms)');
+          updateInternetTimeBadge(true, 'TimeAPI.io');
+          syncLiveDateTime(true);
+          return true;
+        }
+      }
+    } catch (e) {}
+
+    // 2. Try WorldTimeAPI (Asia/Bangkok)
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch('https://worldtimeapi.org/api/timezone/Asia/Bangkok', {
+        signal: controller.signal,
+        cache: 'no-store'
+      });
+      clearTimeout(tid);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.datetime) {
+          const serverMs = new Date(data.datetime).getTime();
+          const latency = (Date.now() - startMs) / 2;
+          internetTimeOffsetMs = (serverMs + latency) - Date.now();
+          isInternetTimeSynced = true;
+          console.log('[Internet Time] Synced via WorldTimeAPI (Offset:', internetTimeOffsetMs, 'ms)');
+          updateInternetTimeBadge(true, 'WorldTimeAPI');
+          syncLiveDateTime(true);
+          return true;
+        }
+      }
+    } catch (e) {}
+
+    // 3. Fallback: Server HTTP Date Header (Zero-CORS, Works on GitHub Pages, Apache, Python)
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch(window.location.href, {
+        method: 'HEAD',
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      clearTimeout(tid);
+      const dateHeader = res.headers.get('date');
+      if (dateHeader) {
+        const serverMs = new Date(dateHeader).getTime();
+        const latency = (Date.now() - startMs) / 2;
+        internetTimeOffsetMs = (serverMs + latency) - Date.now();
+        isInternetTimeSynced = true;
+        console.log('[Internet Time] Synced via HTTP Server Date (Offset:', internetTimeOffsetMs, 'ms)');
+        updateInternetTimeBadge(true, 'HTTP Server Date');
+        syncLiveDateTime(true);
+        return true;
+      }
+    } catch (e) {}
+
+    // 4. Fallback: System clock adjusted to UTC+7
+    console.log('[Internet Time] Using local system clock for Asia/Bangkok');
+    updateInternetTimeBadge(false, 'Local System Clock');
+    syncLiveDateTime(true);
+    return false;
+  }
+
   function getLiveThaiDateTime() {
-    const d = new Date();
-    const day = d.getDate();
-    const month = THAI_MONTHS_SHORT[d.getMonth()] || '';
-    const year = d.getFullYear();
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
+    // Current time shifted by Internet Time offset
+    const targetMs = Date.now() + internetTimeOffsetMs;
+    const now = new Date(targetMs);
+
+    // Compute UTC+7 (Bangkok) time explicitly
+    const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const bangkokDate = new Date(utcMs + (3600000 * 7));
+
+    const day = bangkokDate.getDate();
+    const month = THAI_MONTHS_SHORT[bangkokDate.getMonth()] || '';
+    const year = bangkokDate.getFullYear();
+    const hh = String(bangkokDate.getHours()).padStart(2, '0');
+    const mm = String(bangkokDate.getMinutes()).padStart(2, '0');
     return {
       dateText: `วันที่ ${day} ${month} ${year}`,
       timeText: `${hh}:${mm} น.`,
+      raw: bangkokDate
     };
   }
 
   const initialDateTime = getLiveThaiDateTime();
-  let userOverrodeDateTime = false;
 
   // Default state matching bg_3dc3.png + live current date & time
   const DEFAULT_STATE = {
@@ -129,10 +267,10 @@
         const saved = JSON.parse(raw);
         if (saved && typeof saved === 'object') {
           Object.assign(state, saved);
-          if (!userOverrodeDateTime) {
-            state.dateText = initialDateTime.dateText;
-            state.timeText = initialDateTime.timeText;
-          }
+          // Always initialize date & time with live internet time upon reload
+          const live = getLiveThaiDateTime();
+          state.dateText = live.dateText;
+          state.timeText = live.timeText;
           if (saved.modes) {
             Object.assign(state.modes, saved.modes);
           }
@@ -873,7 +1011,7 @@
       el.addEventListener('focus', () => el.select());
     };
 
-    // Date & Time (User can edit manually or let it tick automatically)
+    // Date & Time (User can edit manually or click live badge to re-sync internet time)
     bindInput('inp-date', (v) => {
       userOverrodeDateTime = true;
       state.dateText = v;
@@ -881,6 +1019,14 @@
     bindInput('inp-time', (v) => {
       userOverrodeDateTime = true;
       state.timeText = v;
+    });
+
+    document.getElementById('btn-sync-time')?.addEventListener('click', async () => {
+      userOverrodeDateTime = false;
+      const label = document.getElementById('txt-live-time-label');
+      if (label) label.textContent = 'กำลังซิงค์...';
+      await fetchInternetTime();
+      syncLiveDateTime(true);
     });
 
     // Card 1: Inventory % -> auto-updates Inventory Ton
@@ -2408,11 +2554,13 @@
     state.timeText = live.timeText;
     const inpDate = document.getElementById('inp-date');
     const inpTime = document.getElementById('inp-time');
-    if (inpDate && document.activeElement !== inpDate) {
+    if (inpDate && (document.activeElement !== inpDate || force)) {
       inpDate.value = live.dateText;
+      try { inpDate.setAttribute('value', live.dateText); } catch (e) {}
     }
-    if (inpTime && document.activeElement !== inpTime) {
+    if (inpTime && (document.activeElement !== inpTime || force)) {
       inpTime.value = live.timeText;
+      try { inpTime.setAttribute('value', live.timeText); } catch (e) {}
     }
   }
 
@@ -2817,11 +2965,23 @@
     // 3. Initialize GSP Data Sync (online query params, bookmarklet, cache, cross-tab events)
     initGspDataSync();
 
-    // 4. Sync live date & time immediately, and tick every 10 seconds
+    // 4. Fetch Internet Time immediately, tick clock every 1 second, and re-sync every 5 minutes
     syncLiveDateTime(true);
+    fetchInternetTime().catch(() => {});
+
     setInterval(() => {
       syncLiveDateTime(false);
-    }, 10000);
+    }, 1000); // Real-time live clock tick every second!
+
+    setInterval(() => {
+      fetchInternetTime().catch(() => {});
+    }, 300000); // Re-sync Internet Time every 5 minutes
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        fetchInternetTime().catch(() => {});
+      }
+    });
 
     // 5. Always load MS Teams notification schedule configuration on all platforms (GitHub Pages, Apache, Localhost)
     try {

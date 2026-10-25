@@ -77,21 +77,33 @@
           </button>
         </div>
 
-        <!-- Top Right Date & Time -->
+        <!-- Top Right Date & Time with Internet Time Live Sync -->
+        <button
+          type="button"
+          id="btn-sync-time"
+          class="board-input btn-live-time"
+          title="🌐 กำลังซิงค์เวลาจริงจาก Internet Time (UTC+7 ประเทศไทย) | คลิกเพื่อซิงค์ใหม่ทันที"
+          style="--x: 1205; --y: 11; --w: 90; --h: 26;"
+        >
+          <span id="dot-live-time" class="live-pulse-dot"></span>
+          <span id="txt-live-time-label">Internet Time</span>
+        </button>
         <input
           id="inp-date"
           type="text"
           class="board-input input-date"
-          value="วันที่ 21 ต.ค. 2026"
-          title="วันที่ปัจจุบัน (อัปเดตอัตโนมัติ / คลิกเพื่อแก้ไข)"
+          value=""
+          placeholder="กำลังดึงเวลา..."
+          title="วันที่ปัจจุบัน (ดึงเวลา Internet Time อัตโนมัติ / คลิกเพื่อแก้ไข)"
           style="--x: 1300; --y: 10; --w: 150; --h: 28;"
         />
         <input
           id="inp-time"
           type="text"
           class="board-input input-time"
-          value="21:00 น."
-          title="เวลาปัจจุบัน (อัปเดตอัตโนมัติ / คลิกเพื่อแก้ไข)"
+          value=""
+          placeholder="--:-- น."
+          title="เวลาปัจจุบัน (ดึงเวลา Internet Time อัตโนมัติ / คลิกเพื่อแก้ไข)"
           style="--x: 1455; --y: 8; --w: 125; --h: 32;"
         />
 

@@ -145,6 +145,61 @@ input[type='number'] {
    ========================================================================== */
 
 /* Top Right Date & Time */
+.btn-live-time {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: rgba(16, 185, 129, 0.16) !important;
+  border: 1px solid rgba(16, 185, 129, 0.5) !important;
+  border-radius: 14px;
+  color: #34d399 !important;
+  font-family: var(--font-main);
+  font-size: calc(10.5 / 1607 * 100cqw);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 6px;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+  user-select: none;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+}
+
+.btn-live-time:hover {
+  background: rgba(16, 185, 129, 0.3) !important;
+  border-color: #10b981 !important;
+  color: #a7f3d0 !important;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.35);
+  transform: translateY(-0.5px);
+}
+
+.live-pulse-dot {
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulse-green 1.6s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+.live-pulse-dot.is-syncing {
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+  animation: spin 1s infinite linear;
+}
+
+.live-pulse-dot.is-fallback {
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+}
+
+@keyframes pulse-green {
+  0% { transform: scale(0.85); opacity: 0.7; }
+  50% { transform: scale(1.25); opacity: 1; box-shadow: 0 0 12px #34d399; }
+  100% { transform: scale(0.85); opacity: 0.7; }
+}
+
 .input-date {
   font-family: var(--font-main);
   font-size: calc(15.5 / 1607 * 100cqw);

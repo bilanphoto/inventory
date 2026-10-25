@@ -103,7 +103,12 @@ def send_alert():
     # Calculate Thai Time (UTC+7)
     thai_tz = timezone(timedelta(hours=7))
     now_thai = datetime.now(thai_tz)
-    date_thai = f"วันที่ {now_thai.day} ต.ค. {now_thai.year} {now_thai.strftime('%H:%M')} น."
+    thai_months = [
+        "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+        "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+    ]
+    month_name = thai_months[now_thai.month - 1]
+    date_thai = f"วันที่ {now_thai.day} {month_name} {now_thai.year} {now_thai.strftime('%H:%M')} น."
     full_timestamp = now_thai.strftime("%d/%m/%Y %H:%M:%S")
 
     config = load_config()
