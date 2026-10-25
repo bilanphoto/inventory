@@ -157,9 +157,11 @@
     const year = bangkokDate.getFullYear();
     const hh = String(bangkokDate.getHours()).padStart(2, '0');
     const mm = String(bangkokDate.getMinutes()).padStart(2, '0');
+    const ss = String(bangkokDate.getSeconds()).padStart(2, '0');
     return {
       dateText: `วันที่ ${day} ${month} ${year}`,
-      timeText: `${hh}:${mm} น.`,
+      timeText: `${hh}:${mm}:${ss} น.`,
+      timeShort: `${hh}:${mm} น.`,
       raw: bangkokDate
     };
   }
@@ -1013,16 +1015,13 @@
 
     // Date & Time (User can edit manually or click live badge to re-sync internet time)
     bindInput('inp-date', (v) => {
-      userOverrodeDateTime = true;
       state.dateText = v;
     });
     bindInput('inp-time', (v) => {
-      userOverrodeDateTime = true;
       state.timeText = v;
     });
 
     document.getElementById('btn-sync-time')?.addEventListener('click', async () => {
-      userOverrodeDateTime = false;
       const label = document.getElementById('txt-live-time-label');
       if (label) label.textContent = 'กำลังซิงค์...';
       await fetchInternetTime();
@@ -2545,15 +2544,16 @@
   }
 
   /**
-   * Sync Live Thai Date & Time (อัปเดตวันและเวลาปัจจุบันแบบเรียลไทม์)
+   * Sync Live Thai Date & Time (อัปเดตวันและเวลาปัจจุบันแบบเรียลไทม์ทุกวินาที)
    */
   function syncLiveDateTime(force = false) {
-    if (userOverrodeDateTime && !force) return;
     const live = getLiveThaiDateTime();
     state.dateText = live.dateText;
     state.timeText = live.timeText;
     const inpDate = document.getElementById('inp-date');
     const inpTime = document.getElementById('inp-time');
+
+    // Only skip updating an input if the user's cursor is actively focused inside it right now
     if (inpDate && (document.activeElement !== inpDate || force)) {
       inpDate.value = live.dateText;
       try { inpDate.setAttribute('value', live.dateText); } catch (e) {}

@@ -202,19 +202,20 @@ input[type='number'] {
 
 .input-date {
   font-family: var(--font-main);
-  font-size: calc(15.5 / 1607 * 100cqw);
+  font-size: calc(15 / 1607 * 100cqw);
   font-weight: 500;
   color: #dbeafe;
   text-align: right;
+  letter-spacing: 0.01em;
 }
 
 .input-time {
   font-family: var(--font-num);
-  font-size: calc(25 / 1607 * 100cqw);
+  font-size: calc(23 / 1607 * 100cqw);
   font-weight: 700;
   color: #ffffff;
   text-align: left;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
 }
 
 /* Card 1: 62% inside 3D Tank */
