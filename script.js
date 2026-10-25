@@ -109,6 +109,49 @@
   const state = JSON.parse(JSON.stringify(DEFAULT_STATE));
   let lastRecommendedMode = 'optimize';
 
+  // ====================================================================
+  // Complete Dashboard State Persistence (Remember all settings across reloads)
+  // ====================================================================
+  const STATE_STORAGE_KEY = 'ptt_smartboard_state';
+
+  function saveStateToLocalStorage() {
+    try {
+      localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn('Failed to save state to localStorage', e);
+    }
+  }
+
+  function loadStateFromLocalStorage() {
+    try {
+      const raw = localStorage.getItem(STATE_STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved && typeof saved === 'object') {
+          Object.assign(state, saved);
+          if (!userOverrodeDateTime) {
+            state.dateText = initialDateTime.dateText;
+            state.timeText = initialDateTime.timeText;
+          }
+          if (saved.modes) {
+            Object.assign(state.modes, saved.modes);
+          }
+          if (saved.expectedResult) {
+            Object.assign(state.expectedResult, saved.expectedResult);
+          }
+          if (saved.gspData) {
+            Object.assign(state.gspData, saved.gspData);
+          }
+          console.log('[Storage] Restored dashboard state from localStorage');
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load state from localStorage', e);
+    }
+    return false;
+  }
+
   // Canvas & Clean Base Image
   const canvas = document.getElementById('board-canvas');
   const ctx = canvas.getContext('2d');
@@ -797,9 +840,10 @@
   }
 
   /**
-   * Optional Python API sync (non-blocking)
+   * Persist dashboard state to localStorage (offline/GitHub Pages) and sync backend if available
    */
   function syncBackendState() {
+    saveStateToLocalStorage();
     if (window.location.protocol === 'file:') return;
     fetch('/api/evaluate', {
       method: 'POST',
@@ -1154,9 +1198,9 @@
         }
       } catch (err) {
         // Online Mode or Backend Unreachable
-        const p = state.gspData?.propanePct ?? 50.81;
-        const l = state.gspData?.lpgPct ?? 35.46;
-        const n = state.gspData?.nglPct ?? 55.48;
+        const p = state.gspData?.propanePct ?? 68.17;
+        const l = state.gspData?.lpgPct ?? 36.19;
+        const n = state.gspData?.nglPct ?? 62.39;
         if (statusBanner) {
           statusBanner.className = 'gsp-status-banner';
           if (isManualClick && isLocalHost) {
@@ -1753,7 +1797,7 @@
     };
 
     // Modern Power Automate Teams Workflows / Adaptive Card Builder (Client-Side)
-    function buildTeamsPayloadClient(reason = 'ส่งทันที (Manual)', note = '', screenshot = '') {
+    function buildTeamsPayloadClient(reason = 'ส่งทันที (Manual)', note = '', format = 'adaptive') {
       const evalRes = evaluateFlowchart();
       const recKey = evalRes.recommendedMode;
       const recModeName = {
@@ -1768,6 +1812,50 @@
       const s = Number(state.gspData?.propanePlusLpgPct ?? 43.17);
       const nowStr = new Date().toLocaleString('th-TH');
 
+      const formattedMd = [
+        `# 📢 PTT 3D SMART BOARD - รายงานสรุปสถานะการผลิตประจำวัน`,
+        `**โหมดการผลิตที่ระบบแนะนำ:** ⭐ **${recModeName}**`,
+        `**วันที่และเวลา:** ${state.dateText || ''} ${state.timeText || ''} น. (${reason})`,
+        note ? `**หมายเหตุ:** ${note}` : '',
+        ``,
+        `### 📊 4 ปัจจัยหลักในการตัดสินใจ (Key Decision Factors)`,
+        `• **1. Inventory (ระดับสินค้าคงคลัง):** ${state.inventoryPct.toFixed(2)}% (${fmtNum(state.inventoryTon)} / ${fmtNum(state.inventoryCap)} Ton)`,
+        `• **2. Demand (ความต้องการใช้ถัง):** ${state.demandPct}% (${fmtNum(state.demandTon)} / ${fmtNum(state.demandCap)} Ton)`,
+        `• **3. Product Price (ราคาผลิตภัณฑ์):** ${state.productPrice} USD/Ton (${state.productPriceChange})`,
+        `• **4. Energy Price (ต้นทุนพลังงาน):** ${state.energyPrice} MMBtu/Ton (${state.energyPriceChange})`,
+        ``,
+        `### 🌐 ข้อมูลระดับถังจาก GSP Daily Report (Tank Farm)`,
+        `• **Propane:** ${p.toFixed(2)}% | **LPG:** ${l.toFixed(2)}% | **NGL:** ${n.toFixed(2)}% | **Propane + LPG:** ${s.toFixed(2)}%`,
+        ``,
+        `### ⚙️ การตัดสินใจเลือกโหมด (Flowchart)`,
+        `• Cross C3 to LPG: ${state.crossC3ToLpg ? 'YES' : 'NO'} | Inventory > 60%: ${state.inventoryPct > 60 ? 'YES' : 'NO'} (${state.inventoryPct.toFixed(2)}%) | Inventory > 70%: ${state.inventoryPct > 70 ? 'YES' : 'NO'} (${state.inventoryPct.toFixed(2)}%)`,
+        ``,
+        `🔗 [เปิดดูหน้าแดชบอร์ด 3D SMART BOARD](https://bilanphoto.github.io/inventory/)`
+      ].filter(Boolean).join('\n');
+
+      // If text format only
+      if (format === 'text') {
+        return {
+          text: formattedMd,
+          message: formattedMd,
+          content: formattedMd,
+          title: `📢 3D SMART BOARD - โหมดที่แนะนำ: ${recModeName}`,
+          summary: `3D SMART BOARD - โหมดที่แนะนำ: ${recModeName}`,
+          recommendedMode: recModeName,
+          inventoryPct: state.inventoryPct,
+          inventoryTon: state.inventoryTon,
+          demandPct: state.demandPct,
+          demandTon: state.demandTon,
+          productPrice: state.productPrice,
+          energyPrice: state.energyPrice,
+          gspData: state.gspData,
+          reason: reason,
+          note: note,
+          timestamp: nowStr
+        };
+      }
+
+      // Adaptive Card format (Clean, Lightweight < 5KB, 100% compliant with Teams)
       const cardBody = [
         {
           type: 'TextBlock',
@@ -1879,31 +1967,19 @@
         }
       );
 
-      if (screenshot) {
-        cardBody.push({
-          type: 'Image',
-          url: screenshot,
-          altText: '3D SMART BOARD Dashboard Snapshot',
-          size: 'Stretch',
-          spacing: 'Medium'
-        });
-      }
-
       const adaptiveCard = {
         $schema: 'http://adaptivecards.io/schemas/adaptive-card.json',
         type: 'AdaptiveCard',
-        version: '1.2',
-        body: cardBody
+        version: '1.4',
+        body: cardBody,
+        actions: [
+          {
+            type: 'Action.OpenUrl',
+            title: '🖥️ เปิดดูหน้าแดชบอร์ดสด (3D SMART BOARD)',
+            url: 'https://bilanphoto.github.io/inventory/'
+          }
+        ]
       };
-
-      const formattedMd = [
-        `# 📢 3D SMART BOARD - โหมดที่แนะนำ: ${recModeName}`,
-        `**วันที่และเวลา:** ${state.dateText || ''} ${state.timeText || ''} น. (${reason})`,
-        note ? `**หมายเหตุ:** ${note}` : '',
-        `**ระดับสินค้าคงคลัง (Inventory):** ${state.inventoryPct.toFixed(2)}%`,
-        `**ความต้องการใช้ถัง (Demand):** ${state.demandPct}%`,
-        `**Propane:** ${p.toFixed(2)}% | **LPG:** ${l.toFixed(2)}% | **NGL:** ${n.toFixed(2)}% | **Propane + LPG:** ${s.toFixed(2)}%`
-      ].filter(Boolean).join('\n\n');
 
       return {
         type: 'message',
@@ -1934,10 +2010,12 @@
     }
 
     // Unified Send Function (Tries server endpoints, falls back to direct browser POST)
-    async function executeSendTeamsNotification(reason, note, screenshot) {
+    async function executeSendTeamsNotification(reason, note, format = null) {
       const defaultUrl = 'https://defaultf2fda5e72ea1450d9fc12af5f86300.95.environment.api.powerplatform.com/powerautomate/automations/direct/cu/18/workflows/904ec45ba2f343b0bf609507bba19298/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=P7wxp36yBmVsRRsQL6hEIYzC7BoO9r8IUQrmM8_9Xfc';
       const webhookUrl = teamsWebhookUrl?.value?.trim() || localStorage.getItem('ptt_teams_webhook_url') || defaultUrl;
-      const payload = buildTeamsPayloadClient(reason, note, screenshot);
+      const fmtSelect = document.getElementById('teams-payload-format');
+      const selectedFormat = format || (fmtSelect ? fmtSelect.value : 'adaptive');
+      const payload = buildTeamsPayloadClient(reason, note, selectedFormat);
       const nowStr = new Date().toLocaleString('th-TH');
 
       // 1. Try Backend Endpoints (PHP notify.php, Python /api/notify/send)
@@ -1954,7 +2032,6 @@
             body: JSON.stringify({
               reason: reason,
               note: note,
-              screenshot: screenshot,
               webhookUrl: webhookUrl,
               payload: payload
             })
@@ -2011,42 +2088,62 @@
       throw new Error('ไม่สามารถเชื่อมต่อไปยัง Webhook ได้');
     }
 
-    // Send Now Button Click (Captures full clear screenshot & sends to MS Teams)
+    // Send Now Button Click (Clean Adaptive Card / Standard Notification)
     document.getElementById('btn-teams-send-now')?.addEventListener('click', async () => {
       const btn = document.getElementById('btn-teams-send-now');
       const origText = btn.innerHTML;
       btn.disabled = true;
-      btn.innerHTML = '<span>📸 กำลังแคปหน้าจอแดชบอร์ดความชัดสูง...</span>';
+      btn.innerHTML = '<span>⏳ กำลังส่งเข้ากลุ่ม MS Teams...</span>';
 
       if (teamsStatusBanner && teamsStatusText) {
         teamsStatusBanner.className = 'teams-status-banner';
-        teamsStatusText.textContent = 'กำลังแคปเจอร์ภาพหน้าจอแดชบอร์ดแบบคมชัดสูง (Full HD)...';
-      }
-
-      let screenshot = null;
-      try {
-        screenshot = await captureDashboardScreenshot();
-      } catch (err) {
-        console.warn('Screenshot capture failed', err);
-      }
-
-      btn.innerHTML = '<span>⏳ กำลังส่งเข้ากลุ่ม MS Teams...</span>';
-      if (teamsStatusBanner && teamsStatusText) {
         teamsStatusText.textContent = 'กำลังส่งข้อมูลเข้ากลุ่ม MS Teams ผ่าน Power Automate...';
       }
 
       try {
         const note = teamsQuickNote?.value?.trim() || '';
-        const res = await executeSendTeamsNotification('ส่งทันที (Manual)', note, screenshot);
+        const fmt = document.getElementById('teams-payload-format')?.value || 'adaptive';
+        const res = await executeSendTeamsNotification('ส่งทันที (Manual)', note, fmt);
 
         if (teamsStatusBanner && teamsStatusText) {
           teamsStatusBanner.className = 'teams-status-banner is-success';
-          teamsStatusText.textContent = `✅ ส่งเข้ากลุ่ม MS Teams พร้อมแนบรูปภาพแดชบอร์ดสำเร็จ (${res.message || '202 Accepted'}) เวลา ${res.timestamp}`;
+          teamsStatusText.textContent = `✅ ส่งเข้ากลุ่ม MS Teams สำเร็จ (${res.message || '202 Accepted'}) เวลา ${res.timestamp}`;
         }
       } catch (err) {
         if (teamsStatusBanner && teamsStatusText) {
           teamsStatusBanner.className = 'teams-status-banner is-error';
           teamsStatusText.textContent = `❌ ไม่สามารถส่งเข้า MS Teams ได้ (${err.message || 'Network Error'})`;
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    });
+
+    // Test Markdown Text Format Button Click
+    document.getElementById('btn-teams-test-text')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btn-teams-test-text');
+      const origText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '⏳ กำลังส่ง...';
+
+      if (teamsStatusBanner && teamsStatusText) {
+        teamsStatusBanner.className = 'teams-status-banner';
+        teamsStatusText.textContent = 'กำลังส่งทดสอบเฉพาะข้อความสรุป Markdown เข้า MS Teams...';
+      }
+
+      try {
+        const note = teamsQuickNote?.value?.trim() || 'ทดสอบส่งข้อความสรุป (Markdown)';
+        const res = await executeSendTeamsNotification('ทดสอบส่งข้อความ (Markdown Only)', note, 'text');
+
+        if (teamsStatusBanner && teamsStatusText) {
+          teamsStatusBanner.className = 'teams-status-banner is-success';
+          teamsStatusText.textContent = `✅ ส่งข้อความสรุปเข้า MS Teams สำเร็จ (${res.message || '202 Accepted'}) เวลา ${res.timestamp}`;
+        }
+      } catch (err) {
+        if (teamsStatusBanner && teamsStatusText) {
+          teamsStatusBanner.className = 'teams-status-banner is-error';
+          teamsStatusText.textContent = `❌ ไม่สามารถส่งข้อความได้ (${err.message || 'Network Error'})`;
         }
       } finally {
         btn.disabled = false;
@@ -2583,6 +2680,9 @@
     // 0. Initialize Authentication Protection immediately
     setupAuthentication();
 
+    // 0.5. Load persisted state from localStorage (remembers user settings across reloads on GitHub Pages)
+    loadStateFromLocalStorage();
+
     // 1. Kick off background image loading immediately so canvas renders without delay
     const bgImg = new Image();
     bgImg.onload = () => {
@@ -2608,19 +2708,19 @@
       syncLiveDateTime(false);
     }, 10000);
 
-    // 5. Auto-pull live values from GSP Daily Report ONLY when running via local Python server
+    // 5. Always load MS Teams notification schedule configuration on all platforms (GitHub Pages, Apache, Localhost)
+    try {
+      if (typeof fetchTeamsConfig === 'function') {
+        fetchTeamsConfig().catch(() => {});
+      }
+    } catch (err) {}
+
+    // 6. Auto-pull live values from GSP Daily Report ONLY when running via local Python server
     const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
     if (window.location.protocol !== 'file:' && isLocal) {
       try {
         if (typeof doFetchGspFromChrome === 'function') {
           doFetchGspFromChrome(false).catch(() => {});
-        }
-      } catch (err) {}
-
-      // Fetch MS Teams notification schedule configuration
-      try {
-        if (typeof fetchTeamsConfig === 'function') {
-          fetchTeamsConfig().catch(() => {});
         }
       } catch (err) {}
     }

@@ -806,15 +806,29 @@
                 />
               </div>
 
+              <div class="teams-field-group">
+                <label for="teams-payload-format">รูปแบบการส่งเข้า MS Teams:</label>
+                <select id="teams-payload-format" class="teams-input">
+                  <option value="adaptive" selected>🌟 Adaptive Card สวยงาม (แนะนำ)</option>
+                  <option value="text">📝 Markdown Message (ข้อความอ่านง่าย)</option>
+                  <option value="both">⚡ Dual Format (ส่งทั้งการ์ดและข้อความพร้อมกัน)</option>
+                </select>
+              </div>
+
               <div class="teams-current-badge">
                 🎯 โหมดที่จะส่ง: <strong id="teams-preview-rec-mode">2. Optimize Mode</strong>
                 (<span id="teams-preview-inv">Inventory 68.17%</span>)
               </div>
 
-              <button type="button" id="btn-teams-send-now" class="btn-teams-primary">
-                <span class="btn-icon">⚡</span>
-                <span>ส่งเข้า MS Teams ทันที</span>
-              </button>
+              <div class="teams-btn-dual-row" style="display: flex; gap: 8px; margin-top: 10px;">
+                <button type="button" id="btn-teams-send-now" class="btn-teams-primary" style="flex: 1;">
+                  <span class="btn-icon">⚡</span>
+                  <span>ส่งเข้า MS Teams ทันที</span>
+                </button>
+                <button type="button" id="btn-teams-test-text" class="btn-teams-mini" style="padding: 0 14px; font-size: 13px;" title="ส่งทดสอบเฉพาะข้อความสรุป Markdown">
+                  🧪 ส่งแบบข้อความ
+                </button>
+              </div>
             </div>
           </div>
 
