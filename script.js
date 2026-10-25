@@ -1070,44 +1070,112 @@
       }
     };
 
-    // Live Fetch from Chrome Tab via Python Backend (/api/fetch-gsp)
-    doFetchGspFromChrome = async function () {
-      if (window.location.protocol === 'file:') return;
-      if (statusBanner) {
-        statusBanner.textContent = 'กำลังดึงค่าสดจากแท็บ gspdailyreport.pttplc.com ใน Google Chrome...';
-      }
+    // Cache GSP Data in localStorage for persistence across reloads
+    function saveGspCache(data) {
       try {
-        const resp = await fetch('/api/fetch-gsp');
+        localStorage.setItem('ptt_gsp_synced_data', JSON.stringify({
+          data: data,
+          timestamp: Date.now(),
+        }));
+      } catch (e) {}
+    }
+
+    function loadGspCache() {
+      try {
+        const raw = localStorage.getItem('ptt_gsp_synced_data');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed?.data) {
+            Object.assign(state.gspData, parsed.data);
+            if (parsed.data.propanePct != null) {
+              updateInvPct(parsed.data.propanePct);
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Set up Draggable Bookmarklet for 1-Click Online Sync from GSP Daily Report
+    function setupGspBookmarklet() {
+      const btnBm = document.getElementById('btn-gsp-bookmarklet');
+      if (!btnBm) return;
+      const targetUrl = window.location.href.split('?')[0].split('#')[0];
+      const bmCode = `javascript:(function(){try{var t=document.body.innerText||document.body.textContent;var pM=t.match(/Propane[^\\d%]{0,30}(\\d+(?:\\.\\d+)?)\\s*%/i);var lM=t.match(/LPG[^\\d%]{0,30}(\\d+(?:\\.\\d+)?)\\s*%/i);var nM=t.match(/NGL[^\\d%]{0,30}(\\d+(?:\\.\\d+)?)\\s*%/i);var sM=t.match(/Propane\\s*\\+\\s*LPG[^\\d%]{0,30}(\\d+(?:\\.\\d+)?)\\s*%/i);var p=pM?pM[1]:'';var l=lM?lM[1]:'';var n=nM?nM[1]:'';var s=sM?sM[1]:'';if(!p){alert('⚠️ ไม่พบข้อมูลเปอร์เซ็นต์ในหน้านี้ กรุณาเปิดหน้า https://gspdailyreport.pttplc.com/DailyReport/Index แล้วกดปุ่มนี้อีกครั้ง');return;}try{var bc=new BroadcastChannel('ptt_gsp_sync_channel');bc.postMessage({propane:p,lpg:l,ngl:n,sum:s,time:new Date().toLocaleTimeString('th-TH')});}catch(e){}try{localStorage.setItem('ptt_gsp_synced_event',JSON.stringify({propane:p,lpg:l,ngl:n,sum:s,t:Date.now()}));}catch(e){}var target='${targetUrl}?p='+p+'&l='+l+'&n='+n+'&s='+s;window.open(target,'ptt_3d_smartboard');}catch(e){alert('Error: '+e.message);}})();`;
+      btnBm.href = bmCode;
+    }
+
+    // Live Fetch from Chrome Tab (Localhost) or fallback to Online/Cached Mode
+    doFetchGspFromChrome = async function (isManualClick = false) {
+      if (window.location.protocol === 'file:') return;
+
+      const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+      const apiUrl = isLocalHost ? '/api/fetch-gsp' : 'api/fetch-gsp';
+
+      if (isManualClick && statusBanner) {
+        statusBanner.textContent = 'กำลังตรวจสอบการเชื่อมต่อข้อมูลสด GSP Daily Report...';
+      }
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const resp = await fetch(apiUrl, { signal: controller.signal, cache: 'no-store' });
+        clearTimeout(timeoutId);
+
+        if (!resp.ok) throw new Error('Backend not available');
         const data = await resp.json();
         if (data?.fetchResult?.ok && data?.fetchResult?.data) {
           Object.assign(state.gspData, data.fetchResult.data);
-          // Propane % จาก GSP Daily Report → ใช้เป็นค่า Inventory (%) อัตโนมัติ
           if (data.fetchResult.data.propanePct != null) {
             updateInvPct(data.fetchResult.data.propanePct);
             syncInputsFromState();
             renderBoard();
             syncBackendState();
           }
+          saveGspCache(state.gspData);
           updateGspModalUI();
           if (statusBanner) {
+            statusBanner.className = 'gsp-status-banner is-success';
             statusBanner.textContent = `✅ ดึงข้อมูลสดสำเร็จ! Propane=${state.gspData.propanePct}% | LPG=${state.gspData.lpgPct}% | NGL=${state.gspData.nglPct}% | Propane+LPG=${state.gspData.propanePlusLpgPct}%`;
           }
+          return;
         } else {
-          if (statusBanner) {
-            statusBanner.textContent = `ℹ️ ${data?.fetchResult?.message || 'ใช้ค่าเริ่มต้นจากภาพหน้าจอ (50.81%, 35.46%, 55.48%, 38.80%)'}`;
+          if (statusBanner && isManualClick) {
+            statusBanner.className = 'gsp-status-banner';
+            statusBanner.textContent = `ℹ️ ${data?.fetchResult?.message || 'แสดงข้อมูลล่าสุดจากฐานข้อมูล (Propane: ' + state.gspData.propanePct + '%)'}`;
           }
         }
       } catch (err) {
+        // Online Mode or Backend Unreachable
+        const p = state.gspData?.propanePct ?? 50.81;
+        const l = state.gspData?.lpgPct ?? 35.46;
+        const n = state.gspData?.nglPct ?? 55.48;
         if (statusBanner) {
-          statusBanner.textContent = '⚠️ กรุณารัน python3 app.py แล้วเปิดผ่าน http://localhost:8080 เพื่อใช้ฟีเจอร์ดึงค่าสดจากแท็บ Chrome';
+          statusBanner.className = 'gsp-status-banner';
+          if (isManualClick && isLocalHost) {
+            statusBanner.textContent = '⚠️ กรุณารัน python3 app.py แล้วเปิดผ่าน http://localhost:8080 เพื่อใช้ฟีเจอร์ดึงค่าสดจากแท็บ Chrome';
+          } else {
+            statusBanner.textContent = `🌐 โหมดออนไลน์: ข้อมูลอัปเดตล่าสุดจาก GSP Daily Report (Propane: ${p}%, LPG: ${l}%, NGL: ${n}%)`;
+          }
         }
       }
-    }
+    };
 
     btnOpenGsp?.addEventListener('click', () => {
       updateGspModalUI();
+      setupGspBookmarklet();
       gspModal?.classList.remove('hidden');
-      doFetchGspFromChrome();
+      // If on localhost, attempt background refresh; if online, display current data without error
+      const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+      if (isLocalHost) {
+        doFetchGspFromChrome(false);
+      } else {
+        if (statusBanner) {
+          const p = state.gspData?.propanePct ?? 50.81;
+          const l = state.gspData?.lpgPct ?? 35.46;
+          const n = state.gspData?.nglPct ?? 55.48;
+          statusBanner.textContent = `🌐 โหมดออนไลน์: ข้อมูลอัปเดตล่าสุดจาก GSP Daily Report (Propane: ${p}%, LPG: ${l}%, NGL: ${n}%)`;
+        }
+      }
     });
 
     document.getElementById('btn-close-gsp')?.addEventListener('click', () => {
@@ -1125,6 +1193,7 @@
         if (k === 'lpg') state.gspData.lpgPct = val;
         if (k === 'ngl') state.gspData.nglPct = val;
         if (k === 'sum') state.gspData.propanePlusLpgPct = val;
+        saveGspCache(state.gspData);
         updateGspModalUI();
       });
     });
@@ -1142,6 +1211,7 @@
         } else {
           updateInvPct(rounded);
         }
+        saveGspCache(state.gspData);
         syncInputsFromState();
         renderBoard();
         syncBackendState();
@@ -1149,12 +1219,14 @@
       });
     });
 
-    document.getElementById('btn-fetch-gsp-now')?.addEventListener('click', doFetchGspFromChrome);
+    document.getElementById('btn-fetch-gsp-now')?.addEventListener('click', () => {
+      doFetchGspFromChrome(true);
+    });
 
-    // Auto-poll GSP Daily Report every 60 seconds
+    // Auto-poll GSP Daily Report every 60 seconds ONLY when running on localhost
     setInterval(() => {
-      if (!document.hidden) {
-        doFetchGspFromChrome();
+      if (!document.hidden && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+        doFetchGspFromChrome(false);
       }
     }, 60000);
 
@@ -1996,6 +2068,116 @@
   }
 
   /**
+   * Initialize GSP Data Synchronization (Online URL Params, BroadcastChannel, Bookmarklet, LocalStorage)
+   */
+  function initGspDataSync() {
+    // 1. Set up Draggable Bookmarklet
+    setupGspBookmarklet();
+
+    // 2. Load cached GSP data from localStorage
+    loadGspCache();
+
+    // 3. Check URL Query Parameters for instant sync (e.g., from Bookmarklet or direct link)
+    try {
+      const params = new URLSearchParams(window.location.search);
+      let updatedFromUrl = false;
+      const pVal = params.get('p') || params.get('propane');
+      const lVal = params.get('l') || params.get('lpg');
+      const nVal = params.get('n') || params.get('ngl');
+      const sVal = params.get('s') || params.get('sum');
+
+      if (pVal != null && !isNaN(parseFloat(pVal))) {
+        const p = parseFloat(pVal);
+        state.gspData.propanePct = p;
+        state.inventoryPct = p;
+        state.inventoryTon = Math.round((p / 100) * state.inventoryCap);
+        updatedFromUrl = true;
+      }
+      if (lVal != null && !isNaN(parseFloat(lVal))) {
+        state.gspData.lpgPct = parseFloat(lVal);
+        updatedFromUrl = true;
+      }
+      if (nVal != null && !isNaN(parseFloat(nVal))) {
+        state.gspData.nglPct = parseFloat(nVal);
+        updatedFromUrl = true;
+      }
+      if (sVal != null && !isNaN(parseFloat(sVal))) {
+        state.gspData.propanePlusLpgPct = parseFloat(sVal);
+        updatedFromUrl = true;
+      }
+
+      if (updatedFromUrl) {
+        saveGspCache(state.gspData);
+        syncInputsFromState();
+        renderBoard();
+        syncBackendState();
+        // Clean URL query parameters from address bar without reloading
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        const banner = document.getElementById('gsp-status-banner');
+        if (banner) {
+          banner.className = 'gsp-status-banner is-success';
+          banner.textContent = `✅ ซิงค์ข้อมูลสดจาก GSP Daily Report สำเร็จ! Propane=${state.gspData.propanePct}% | LPG=${state.gspData.lpgPct}% | NGL=${state.gspData.nglPct}%`;
+        }
+      }
+    } catch (e) {}
+
+    // 4. Listen for BroadcastChannel messages from GSP tab in real-time
+    try {
+      const bc = new BroadcastChannel('ptt_gsp_sync_channel');
+      bc.onmessage = (event) => {
+        if (event?.data) {
+          const d = event.data;
+          if (d.propane != null && !isNaN(parseFloat(d.propane))) {
+            const p = parseFloat(d.propane);
+            state.gspData.propanePct = p;
+            state.inventoryPct = p;
+            state.inventoryTon = Math.round((p / 100) * state.inventoryCap);
+          }
+          if (d.lpg != null) state.gspData.lpgPct = parseFloat(d.lpg);
+          if (d.ngl != null) state.gspData.nglPct = parseFloat(d.ngl);
+          if (d.sum != null) state.gspData.propanePlusLpgPct = parseFloat(d.sum);
+
+          saveGspCache(state.gspData);
+          syncInputsFromState();
+          renderBoard();
+          syncBackendState();
+          updateGspModalUI();
+
+          const banner = document.getElementById('gsp-status-banner');
+          if (banner) {
+            banner.className = 'gsp-status-banner is-success';
+            banner.textContent = `⚡ ได้รับข้อมูลอัปเดตสดจากหน้า GSP! Propane=${state.gspData.propanePct}% | LPG=${state.gspData.lpgPct}% | NGL=${state.gspData.nglPct}%`;
+          }
+        }
+      };
+    } catch (e) {}
+
+    // 5. Cross-tab storage event listener
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'ptt_gsp_synced_event' && e.newValue) {
+        try {
+          const d = JSON.parse(e.newValue);
+          if (d?.propane != null && !isNaN(parseFloat(d.propane))) {
+            const p = parseFloat(d.propane);
+            state.gspData.propanePct = p;
+            state.inventoryPct = p;
+            state.inventoryTon = Math.round((p / 100) * state.inventoryCap);
+            if (d.lpg != null) state.gspData.lpgPct = parseFloat(d.lpg);
+            if (d.ngl != null) state.gspData.nglPct = parseFloat(d.ngl);
+            if (d.sum != null) state.gspData.propanePlusLpgPct = parseFloat(d.sum);
+            saveGspCache(state.gspData);
+            syncInputsFromState();
+            renderBoard();
+            syncBackendState();
+            updateGspModalUI();
+          }
+        } catch (err) {}
+      }
+    });
+  }
+
+  /**
    * Initialize Board
    */
   function init() {
@@ -2018,17 +2200,21 @@
     bindEvents();
     syncInputsFromState();
 
-    // 3. Sync live date & time immediately, and tick every 10 seconds
+    // 3. Initialize GSP Data Sync (online query params, bookmarklet, cache, cross-tab events)
+    initGspDataSync();
+
+    // 4. Sync live date & time immediately, and tick every 10 seconds
     syncLiveDateTime(true);
     setInterval(() => {
       syncLiveDateTime(false);
     }, 10000);
 
-    // 3. Auto-pull live values from GSP Daily Report and Teams config when running via server
-    if (window.location.protocol !== 'file:') {
+    // 5. Auto-pull live values from GSP Daily Report ONLY when running via local Python server
+    const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    if (window.location.protocol !== 'file:' && isLocal) {
       try {
         if (typeof doFetchGspFromChrome === 'function') {
-          doFetchGspFromChrome().catch(() => {});
+          doFetchGspFromChrome(false).catch(() => {});
         }
       } catch (err) {}
 

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261024" />
+  <link rel="stylesheet" href="styles.css?v=20261025" />
 </head>
 <body>
   <div class="viewport-wrapper">
@@ -732,10 +732,25 @@
       </div>
 
       <div class="gsp-help-footer">
-        <strong>วิธีดึงค่าสดจากแท็บ Chrome อัตโนมัติ 100%:</strong>
-        ในโปรแกรม Google Chrome ที่เปิดหน้า <code>gspdailyreport.pttplc.com</code> อยู่ ให้ไปที่เมนูด้านบน
-        <code>View &gt; Developer &gt; Allow JavaScript from Apple Events</code> (เปิดครั้งเดียว) จากนั้นกดปุ่ม
-        <strong>"🔄 ดึงค่าสดจากแท็บ Chrome"</strong> ด้านบนได้เลย
+        <div class="gsp-sync-card">
+          <div class="gsp-sync-card-title">
+            <span>🌐 ซิงค์ข้อมูลสดจากหน้าเว็บ GSP Daily Report (โหมดออนไลน์)</span>
+            <span class="gsp-badge-rec">⭐ แนะนำ 1 คลิก</span>
+          </div>
+          <div style="font-size: 12px; color: #475569;">
+            ลากปุ่มสีฟ้าด้านล่างนี้ขึ้นไปวางบนแถบ <strong>ที่คั่นหน้า (Bookmark Bar)</strong> ของ Chrome (ทำครั้งเดียว) เมื่อเปิดหน้า <code>gspdailyreport.pttplc.com</code> ให้กดปุ่มนี้ 1 ครั้ง ข้อมูลจะถูกดึงเข้า 3D SMART BOARD ทันที:
+          </div>
+          <div class="gsp-bookmarklet-row">
+            <a id="btn-gsp-bookmarklet" class="gsp-bookmarklet-btn" href="#" title="ลากปุ่มนี้ขึ้นไปวางที่แถบบุ๊กมาร์กของ Google Chrome">
+              📥 ซิงค์ค่าสดเข้า 3D SMART BOARD
+            </a>
+            <span class="gsp-drag-hint">👈 <strong>ลากปุ่มนี้</strong> ไปวางบนแถบ Bookmark Bar ของ Chrome</span>
+          </div>
+        </div>
+
+        <div style="font-size: 11.5px; color: #64748b; line-height: 1.4;">
+          💻 <em>สำหรับการรันบนเครื่อง Mac (Localhost): สามารถเปิดหน้าเว็บ GSP ค้างไว้ใน Chrome แล้วกดปุ่ม "🔄 ดึงค่าสดจากแท็บ Chrome" ด้านบนได้เช่นกัน</em>
+        </div>
       </div>
     </div>
   </div>
@@ -1030,6 +1045,6 @@
   </div>
 
   <script src="html2canvas.min.js"></script>
-  <script src="script.js?v=20261024"></script>
+  <script src="script.js?v=20261025"></script>
 </body>
 </html>
