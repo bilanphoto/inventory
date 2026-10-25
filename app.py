@@ -14,6 +14,7 @@ import re
 import secrets
 import ssl
 import subprocess
+import sys
 import threading
 import time
 import urllib.request
@@ -1149,4 +1150,26 @@ def run_server():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] in ("--alert", "--trigger-alert", "alert"):
+        reason = sys.argv[2] if len(sys.argv) > 2 else "ตั้งเวลาอัตโนมัติ (Automated Shift Alert)"
+        print(f"Triggering MS Teams notification: {reason}...")
+        # Auto-refresh GSP if possible
+        try:
+            gsp_res = fetch_gsp_from_chrome_tab()
+            if not gsp_res.get("ok"):
+                gsp_res = fetch_gsp_with_cookie()
+            if gsp_res.get("ok") and gsp_res.get("data"):
+                CURRENT_STATE["gspData"].update(gsp_res["data"])
+                if gsp_res["data"].get("propanePct") is not None:
+                    pct = round(float(gsp_res["data"]["propanePct"]), 2)
+                    CURRENT_STATE["inventoryPct"] = pct
+                    CURRENT_STATE["inventoryTon"] = round(pct / 100 * CURRENT_STATE["inventoryCap"])
+                print(f"Auto-refreshed live GSP data: Propane={CURRENT_STATE['inventoryPct']}%")
+        except Exception as ge:
+            print(f"Note: Could not auto-fetch live tab ({ge}), using latest stored state.")
+        
+        result = send_teams_notification(reason=reason)
+        print("Result:", json.dumps(result, ensure_ascii=False, indent=2))
+        sys.exit(0 if result.get("ok") else 1)
+
     run_server()

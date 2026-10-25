@@ -6,8 +6,24 @@
     "20:00"
   ],
   "scheduleTime": "08:00, 20:00",
-  "lastSent": null,
-  "lastStatus": null,
+  "lastSent": "25/10/2026 13:32:46",
+  "lastStatus": "สำเร็จ (202 Accepted)",
   "lastError": null,
-  "sendLogs": []
+  "sendLogs": [
+    {
+      "timestamp": "25/10/2026 13:32:46",
+      "reason": "ทดสอบระบบ Automation (รอบกะการผลิต)",
+      "status": "สำเร็จ (202 Accepted)",
+      "statusCode": 202,
+      "recommendedMode": "Optimization (2. Optimize Mode)",
+      "ok": true
+    },
+    {
+      "timestamp": "25/10/2026 13:28:39",
+      "reason": "ทดสอบระบบ Automation (รอบกะการผลิต)",
+      "status": "Error: <urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "statusCode": 0,
+      "ok": false
+    }
+  ]
 }
