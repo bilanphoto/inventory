@@ -2279,15 +2279,10 @@
           lastClientFiredMinute = ymdHM;
           console.log(`[Client Scheduler] Firing daily alert for ${currentHM} (${ymdHM})...`);
 
-          let shot = null;
-          try {
-            shot = await captureDashboardScreenshot();
-          } catch (e) {}
-
           await executeSendTeamsNotification(
             `ตั้งเวลาประจำวัน (รอบ ${currentHM} น.)`,
             'แจ้งเตือนอัตโนมัติตามรอบเวลาที่กำหนด',
-            shot
+            'adaptive'
           ).catch((err) => console.warn('[Client Scheduler] Notification failed', err));
         }
       } catch (e) {

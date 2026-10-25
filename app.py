@@ -843,6 +843,20 @@ def schedule_worker():
                 if current_hm in times_list and last_fired_ymd_hm != current_ymd_hm:
                     last_fired_ymd_hm = current_ymd_hm
                     print(f"[MS Teams Scheduler] Triggering daily notification for {current_hm} at {current_ymd_hm}...")
+                    # Automatically attempt to refresh live GSP data before sending
+                    try:
+                        gsp_res = fetch_gsp_from_chrome_tab()
+                        if not gsp_res.get("ok"):
+                            gsp_res = fetch_gsp_with_cookie()
+                        if gsp_res.get("ok") and gsp_res.get("data"):
+                            CURRENT_STATE["gspData"].update(gsp_res["data"])
+                            if gsp_res["data"].get("propanePct") is not None:
+                                pct = round(float(gsp_res["data"]["propanePct"]), 2)
+                                CURRENT_STATE["inventoryPct"] = pct
+                                CURRENT_STATE["inventoryTon"] = round(pct / 100 * CURRENT_STATE["inventoryCap"])
+                            print(f"[MS Teams Scheduler] Auto-refreshed live GSP data: Propane={CURRENT_STATE['inventoryPct']}%")
+                    except Exception as ge:
+                        print(f"[MS Teams Scheduler] Note: Could not auto-fetch live tab ({ge}), using latest stored state.")
                     send_teams_notification(reason=f"ตั้งเวลาประจำวัน (รอบ {current_hm} น.)")
         except Exception as e:
             print(f"[MS Teams Scheduler Error] {e}")
