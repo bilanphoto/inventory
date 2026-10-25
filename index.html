@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261025_settings_modal_v6" />
+  <link rel="stylesheet" href="styles.css?v=20261025_settings_flowchart_v7" />
 </head>
 <body>
   <div class="viewport-wrapper">
@@ -348,32 +348,6 @@
         </div>
 
         <!-- ============================================================
-             BOTTOM CENTER HEADER: FLOWCHART CONDITION BAR & GSP SYNC
-             ============================================================ -->
-        <div class="flowchart-inline-bar" style="--x: 955; --y: 607; --w: 360; --h: 44;">
-          <button
-            type="button"
-            id="btn-cross-toggle"
-            class="cross-toggle-pill is-yes"
-            title="คลิกเพื่อสลับเงื่อนไข Cross C3 to LPG ? (YES / NO) ตาม Flowchart"
-          >
-            <span class="cross-label">Cross C3→LPG:</span>
-            <span id="cross-val-badge" class="cross-badge">YES</span>
-          </button>
-          <button
-            type="button"
-            id="btn-open-flowchart"
-            class="flowchart-open-btn"
-            title="เปิดดูผังการตัดสินใจเลือกโหมดการผลิต (Operation Mode Flowchart)"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <path d="M6 3v12" /><circle cx="18" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path d="M18 9a9 9 0 0 1-9 9" />
-            </svg>
-            <span>Flowchart เงื่อนไข</span>
-          </button>
-        </div>
-
-        <!-- ============================================================
              MODE 1: 1. C3 Max Mode (เพิ่มการผลิต C3 สูงสุด)
              ============================================================ -->
         <!-- C3, C4, LPG, Other % -->
@@ -474,185 +448,6 @@
   </div>
 
   <!-- ====================================================================
-       INTERACTIVE FLOWCHART MODAL (ผังการตัดสินใจเลือกโหมดการผลิต)
-       Matches Screenshot 2569-10-20 at 13.46.50.png
-       ==================================================================== -->
-  <div id="flowchart-modal" class="flowchart-modal hidden" role="dialog" aria-modal="true" aria-labelledby="flowchart-modal-title">
-    <div class="flowchart-backdrop" id="flowchart-backdrop"></div>
-    <div class="flowchart-dialog">
-      <!-- Header matching the blue banner in the screenshot -->
-      <div class="fc-header">
-        <div class="fc-header-left">
-          <div class="fc-gear-circle">⚙️</div>
-          <h2 id="flowchart-modal-title">ผังการตัดสินใจเลือกโหมดการผลิต (Operation Mode)</h2>
-        </div>
-        <div class="fc-header-actions">
-          <button type="button" id="btn-tab-interactive" class="fc-tab-btn active">ผังแบบโต้ตอบ (Live)</button>
-          <button type="button" id="btn-tab-original" class="fc-tab-btn">รูปต้นฉบับ</button>
-          <button type="button" id="btn-close-flowchart" class="fc-close-btn" aria-label="ปิด">✕</button>
-        </div>
-      </div>
-
-      <!-- Quick Controls Bar inside Modal -->
-      <div class="fc-controls-strip">
-        <div class="fc-control-item">
-          <label>Cross C3 to LPG ?</label>
-          <div class="fc-seg-group">
-            <button type="button" id="fc-btn-cross-yes" class="fc-seg-btn active-yes">YES</button>
-            <button type="button" id="fc-btn-cross-no" class="fc-seg-btn">NO</button>
-          </div>
-        </div>
-        <div class="fc-control-item">
-          <label for="fc-slider-inv">Inventory (%):</label>
-          <input type="range" id="fc-slider-inv" min="0" max="100" step="0.01" value="68.17" />
-          <span id="fc-inv-readout" class="fc-readout">68.17%</span>
-        </div>
-        <div class="fc-presets">
-          <button type="button" class="fc-preset-btn" data-preset="c3_no">ทดสอบ C3 Max (NO)</button>
-          <button type="button" class="fc-preset-btn" data-preset="c3_low">ทดสอบ C3 Max (50%)</button>
-          <button type="button" class="fc-preset-btn" data-preset="optimize">ทดสอบ Optimize (62%)</button>
-          <button type="button" class="fc-preset-btn" data-preset="lpg">ทดสอบ LPG Mode (78%)</button>
-        </div>
-      </div>
-
-      <!-- Tab 1: Interactive SVG Flowchart matching Screenshot 2569-10-20 at 13.46.50.png -->
-      <div id="fc-view-interactive" class="fc-body">
-        <svg class="fc-svg" viewBox="0 0 760 660" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="startGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#1d4ed8" />
-              <stop offset="100%" stop-color="#0a2472" />
-            </linearGradient>
-            <linearGradient id="diamondGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#f8fbff" />
-              <stop offset="100%" stop-color="#dbeafe" />
-            </linearGradient>
-            <filter id="fcShadow" x="-15%" y="-15%" width="130%" height="130%">
-              <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#1e3a8a" flood-opacity="0.18" />
-            </filter>
-            <filter id="fcActiveGlow" x="-25%" y="-25%" width="150%" height="150%">
-              <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#2563eb" flood-opacity="0.55" />
-            </filter>
-          </defs>
-
-          <!-- Connector: Start -> Cross C3 to LPG ? -->
-          <path id="fc-line-start" class="fc-path active" d="M 370 72 L 370 106" />
-          <polygon class="fc-arrow-blue" points="370,114 363,102 377,102" />
-
-          <!-- Connector: Cross C3 to LPG ? -> YES -> Inventory > 60% ? -->
-          <path id="fc-line-cross-yes" class="fc-path fc-yes-path" d="M 225 165 L 180 165 Q 170 165 170 175 L 170 245 Q 170 255 180 255 L 235 255 L 235 266" />
-          <polygon id="fc-arr-cross-yes" class="fc-arrow-green" points="235,274 228,262 242,262" />
-
-          <!-- Connector: Cross C3 to LPG ? -> NO -> C3 Max -->
-          <path id="fc-line-cross-no" class="fc-path fc-no-path" d="M 515 165 L 620 165 Q 630 165 630 175 L 630 282" />
-          <polygon id="fc-arr-cross-no" class="fc-arrow-red" points="630,292 623,280 637,280" />
-
-          <!-- Connector: Inventory > 60% ? -> NO -> C3 Max -->
-          <path id="fc-line-inv60-no" class="fc-path fc-no-path" d="M 380 330 L 525 330" />
-          <polygon id="fc-arr-inv60-no" class="fc-arrow-red" points="535,330 523,323 523,337" />
-
-          <!-- Connector: Inventory > 60% ? -> YES -> Inventory > 70% ? -->
-          <path id="fc-line-inv60-yes" class="fc-path fc-yes-path" d="M 240 395 L 240 438 L 280 438 L 280 448" />
-          <polygon id="fc-arr-inv60-yes" class="fc-arrow-green" points="280,456 273,444 287,444" />
-
-          <!-- Connector: Inventory > 70% ? -> YES -> LPG Mode -->
-          <path id="fc-line-inv70-yes" class="fc-path fc-yes-path" d="M 210 495 L 165 495 Q 155 495 155 505 L 155 562" />
-          <polygon id="fc-arr-inv70-yes" class="fc-arrow-green" points="155,572 148,560 162,560" />
-
-          <!-- Connector: Inventory > 70% ? -> NO -> Optimization -->
-          <path id="fc-line-inv70-no" class="fc-path fc-no-path" d="M 475 495 L 555 495 Q 565 495 565 505 L 565 562" />
-          <polygon id="fc-arr-inv70-no" class="fc-arrow-red" points="565,572 558,560 572,560" />
-
-          <!-- Node: Start -->
-          <g id="fc-node-start" filter="url(#fcShadow)">
-            <rect x="245" y="18" width="250" height="54" rx="27" fill="url(#startGrad)" />
-            <text x="370" y="53" text-anchor="middle" fill="#ffffff" font-size="25" font-weight="700">Start</text>
-          </g>
-
-          <!-- Node: Cross C3 to LPG ? -->
-          <g id="fc-node-cross" class="fc-clickable" filter="url(#fcShadow)">
-            <polygon points="370,114 518,165 370,216 222,165" fill="url(#diamondGrad)" stroke="#1d6fa5" stroke-width="2.5" />
-            <text x="370" y="172" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">Cross C3 to LPG ?</text>
-          </g>
-
-          <!-- Badges for Cross C3 to LPG -->
-          <g id="fc-badge-cross-yes" class="fc-clickable">
-            <rect x="130" y="188" width="84" height="36" rx="18" fill="#198754" />
-            <text x="172" y="212" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">YES</text>
-          </g>
-          <g id="fc-badge-cross-no" class="fc-clickable">
-            <rect x="588" y="188" width="84" height="36" rx="18" fill="#e11d1d" />
-            <text x="630" y="212" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">NO</text>
-          </g>
-
-          <!-- Node: Inventory > 60% ? -->
-          <g id="fc-node-inv60" filter="url(#fcShadow)">
-            <polygon points="240,266 380,330 240,394 100,330" fill="url(#diamondGrad)" stroke="#1d6fa5" stroke-width="2.5" />
-            <text x="240" y="322" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">Inventory</text>
-            <text x="240" y="348" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">&gt; 60% ?</text>
-          </g>
-
-          <!-- Badges for Inventory > 60% -->
-          <g id="fc-badge-inv60-no">
-            <rect x="415" y="312" width="80" height="36" rx="18" fill="#e11d1d" />
-            <text x="455" y="336" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">NO</text>
-          </g>
-          <g id="fc-badge-inv60-yes">
-            <rect x="198" y="400" width="84" height="34" rx="17" fill="#198754" />
-            <text x="240" y="423" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">YES</text>
-          </g>
-
-          <!-- Result Box: C3 Max -->
-          <g id="fc-res-c3max" filter="url(#fcShadow)">
-            <rect x="538" y="294" width="194" height="72" rx="12" fill="#ffe4e6" stroke="#e15b64" stroke-width="2.2" />
-            <text x="635" y="339" text-anchor="middle" fill="#c81e1e" font-size="26" font-weight="800">C3 Max</text>
-          </g>
-
-          <!-- Node: Inventory > 70% ? -->
-          <g id="fc-node-inv70" filter="url(#fcShadow)">
-            <polygon points="342,434 476,495 342,556 208,495" fill="url(#diamondGrad)" stroke="#1d6fa5" stroke-width="2.5" />
-            <text x="342" y="487" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">Inventory</text>
-            <text x="342" y="513" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">&gt; 70% ?</text>
-          </g>
-
-          <!-- Badges for Inventory > 70% -->
-          <g id="fc-badge-inv70-yes">
-            <rect x="115" y="508" width="80" height="36" rx="18" fill="#198754" />
-            <text x="155" y="532" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">YES</text>
-          </g>
-          <g id="fc-badge-inv70-no">
-            <rect x="525" y="508" width="80" height="36" rx="18" fill="#e11d1d" />
-            <text x="565" y="532" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">NO</text>
-          </g>
-
-          <!-- Result Box: LPG Mode -->
-          <g id="fc-res-lpg" filter="url(#fcShadow)">
-            <rect x="24" y="574" width="312" height="76" rx="12" fill="#dcfce7" stroke="#2e7d32" stroke-width="2.2" />
-            <circle cx="72" cy="612" r="30" fill="#1e824c" />
-            <path d="M72 592 C78 602, 86 608, 82 622 C80 628, 75 632, 72 632 C69 632, 62 628, 61 620 C59 610, 67 602, 72 592 Z" fill="#ffffff" />
-            <text x="205" y="621" text-anchor="middle" fill="#14532d" font-size="26" font-weight="800">LPG Mode</text>
-          </g>
-
-          <!-- Result Box: Optimization -->
-          <g id="fc-res-optimize" filter="url(#fcShadow)">
-            <rect x="396" y="574" width="330" height="76" rx="12" fill="#fef9c3" stroke="#eab308" stroke-width="2.2" />
-            <circle cx="444" cy="612" r="30" fill="#ea8c06" />
-            <rect x="430" y="614" width="6" height="12" fill="#fff" />
-            <rect x="440" y="605" width="6" height="21" fill="#fff" />
-            <rect x="450" y="595" width="6" height="31" fill="#fff" />
-            <text x="590" y="621" text-anchor="middle" fill="#b45309" font-size="26" font-weight="800">Optimization</text>
-          </g>
-        </svg>
-      </div>
-
-      <!-- Tab 2: Original Flowchart Image from folder -->
-      <div id="fc-view-original" class="fc-body hidden">
-        <img src="Screenshot 2569-10-20 at 13.46.50.png" alt="ผังการตัดสินใจเลือกโหมดการผลิต (Operation Mode)" class="fc-orig-img" />
-      </div>
-    </div>
-  </div>
-
-  <!-- ====================================================================
        MASTER SETTINGS & SYSTEM CONFIGURATION MODAL (#settings-modal)
        Triggered by transparent hotspot over PTT Logo at top-left corner
        Tabs: MS Teams, GSP Report, Internet Time, User & Security
@@ -666,7 +461,7 @@
           <div class="fc-gear-circle settings-gear-circle">⚙️</div>
           <div>
             <h2 id="settings-modal-title">การตั้งค่าและจัดการระบบ (System Settings)</h2>
-            <p class="gsp-sub-url">PTT 3D SMART BOARD — แจ้งเตือน MS Teams, ซิงค์ข้อมูล GSP, เวลาสากล และบัญชีผู้ใช้</p>
+            <p class="gsp-sub-url">PTT 3D SMART BOARD — แจ้งเตือน MS Teams, ซิงค์ข้อมูล GSP, ผังการตัดสินใจ และบัญชีผู้ใช้</p>
           </div>
         </div>
         <div class="fc-header-actions">
@@ -685,10 +480,9 @@
           <span class="tab-icon">🛢️</span>
           <span>ดึงข้อมูล GSP Report</span>
         </button>
-        <button type="button" class="settings-tab-btn" data-tab="time">
-          <span class="tab-icon">🌐</span>
-          <span>เวลา Internet Time</span>
-          <span class="live-tab-pulse"></span>
+        <button type="button" class="settings-tab-btn" data-tab="flowchart">
+          <span class="tab-icon">🔀</span>
+          <span>ผังการตัดสินใจ Flowchart</span>
         </button>
         <button type="button" class="settings-tab-btn" data-tab="user">
           <span class="tab-icon">👤</span>
@@ -997,40 +791,183 @@
           </div>
         </div>
 
-        <!-- Tab 3: เวลา Internet Time (Clock & NTP Sync) -->
-        <div id="tab-pane-time" class="settings-tab-pane" data-tab="time">
-          <div class="time-settings-card">
-            <div class="time-status-row">
-              <div class="time-icon-circle">🌐</div>
-              <div class="time-status-info">
-                <h3>ระบบเวลามาตรฐานสากล (Internet Time UTC+7)</h3>
-                <p>🟢 ซิงค์เวลาตรงกับเซิร์ฟเวอร์เวลาสากลและเดินสดแบบ Real-Time</p>
-              </div>
-              <button type="button" id="btn-sync-time" class="btn-resync-time">🔄 ซิงค์เวลาใหม่ทันที</button>
-            </div>
-
-            <div class="time-details-grid">
-              <div class="time-detail-item">
-                <span class="time-detail-label">เวลาปัจจุบัน (Live Clock)</span>
-                <span id="time-preview-clock" class="time-detail-val time-clock-val">--:--:-- น.</span>
-              </div>
-              <div class="time-detail-item">
-                <span class="time-detail-label">วันที่ปัจจุบัน</span>
-                <span id="time-preview-date" class="time-detail-val">กำลังตรวจสอบ...</span>
-              </div>
-              <div class="time-detail-item">
-                <span class="time-detail-label">เขตเวลา (Timezone)</span>
-                <span class="time-detail-val">Asia/Bangkok (UTC+07:00)</span>
-              </div>
-              <div class="time-detail-item">
-                <span class="time-detail-label">แหล่งอ้างอิงเวลา (NTP Servers)</span>
-                <span class="time-detail-val">WorldTimeAPI / TimeAPI / OS</span>
+        <!-- Tab 3: ผังการตัดสินใจเลือกโหมดการผลิต (Operation Mode Flowchart & Cross C3) -->
+        <div id="tab-pane-flowchart" class="settings-tab-pane" data-tab="flowchart">
+          <!-- Flowchart Toolbar: Cross C3 to LPG (Buttons from Image 1) & View Switcher -->
+          <div class="flowchart-settings-toolbar" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; padding: 12px 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <span style="font-size: 13.5px; font-weight: 700; color: #1e293b;">เงื่อนไขหลัก:</span>
+              <!-- Button 1 from Image 1: Cross C3 to LPG Toggle Pill -->
+              <button
+                type="button"
+                id="btn-cross-toggle"
+                class="cross-toggle-pill is-yes"
+                title="คลิกเพื่อสลับเงื่อนไข Cross C3 to LPG ? (YES / NO) ตาม Flowchart"
+              >
+                <span class="cross-label">Cross C3→LPG:</span>
+                <span id="cross-val-badge" class="cross-badge">YES</span>
+              </button>
+              <div class="fc-seg-group">
+                <button type="button" id="fc-btn-cross-yes" class="fc-seg-btn active-yes">YES</button>
+                <button type="button" id="fc-btn-cross-no" class="fc-seg-btn">NO</button>
               </div>
             </div>
 
-            <div style="background: #f1f5f9; padding: 12px 16px; border-radius: 8px; font-size: 12.5px; color: #334155; line-height: 1.5;">
-              ⚡ <strong>การทำงานอัตโนมัติ:</strong> นาฬิกาบนแถบมุมขวาบนของบอร์ดจะเดินสดตลอดเวลาแบบ Real-time วินาทีต่อวินาที แม้จะเปิดหน้าเว็บทิ้งไว้ โดยไม่จำเป็นต้องกดรีเฟรชหน้าจอ
+            <!-- Button 2 from Image 1: Flowchart View Switcher -->
+            <div class="fc-header-actions" style="margin: 0; display: flex; gap: 6px;">
+              <button type="button" id="btn-tab-interactive" class="fc-tab-btn active">📊 ผังแบบโต้ตอบ (Live)</button>
+              <button type="button" id="btn-tab-original" class="fc-tab-btn">🖼️ รูปต้นฉบับ</button>
             </div>
+          </div>
+
+          <!-- Quick Simulation Strip: Slider & Presets -->
+          <div class="fc-controls-strip" style="border-radius: 8px; margin-bottom: 14px; border: 1px solid #bfdbfe;">
+            <div class="fc-control-item">
+              <label for="fc-slider-inv">ทดสอบปรับระดับ Inventory (%):</label>
+              <input type="range" id="fc-slider-inv" min="0" max="100" step="0.01" value="68.17" />
+              <span id="fc-inv-readout" class="fc-readout">68.17%</span>
+            </div>
+            <div class="fc-presets">
+              <button type="button" class="fc-preset-btn" data-preset="c3_no">ทดสอบ C3 Max (Cross NO)</button>
+              <button type="button" class="fc-preset-btn" data-preset="c3_low">ทดสอบ C3 Max (Inv &lt; 60%)</button>
+              <button type="button" class="fc-preset-btn" data-preset="optimize">ทดสอบ Optimize (Inv 60-70%)</button>
+              <button type="button" class="fc-preset-btn" data-preset="lpg">ทดสอบ LPG Mode (Inv &gt; 70%)</button>
+            </div>
+          </div>
+
+          <!-- View 1: Interactive SVG Flowchart -->
+          <div id="fc-view-interactive" class="fc-body" style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 14px;">
+            <svg class="fc-svg" viewBox="0 0 760 660" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="startGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#1d4ed8" />
+                  <stop offset="100%" stop-color="#0a2472" />
+                </linearGradient>
+                <linearGradient id="diamondGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#f8fbff" />
+                  <stop offset="100%" stop-color="#dbeafe" />
+                </linearGradient>
+                <filter id="fcShadow" x="-15%" y="-15%" width="130%" height="130%">
+                  <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#1e3a8a" flood-opacity="0.18" />
+                </filter>
+                <filter id="fcActiveGlow" x="-25%" y="-25%" width="150%" height="150%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#2563eb" flood-opacity="0.55" />
+                </filter>
+              </defs>
+
+              <!-- Connector: Start -> Cross C3 to LPG ? -->
+              <path id="fc-line-start" class="fc-path active" d="M 370 72 L 370 106" />
+              <polygon class="fc-arrow-blue" points="370,114 363,102 377,102" />
+
+              <!-- Connector: Cross C3 to LPG ? -> YES -> Inventory > 60% ? -->
+              <path id="fc-line-cross-yes" class="fc-path fc-yes-path" d="M 225 165 L 180 165 Q 170 165 170 175 L 170 245 Q 170 255 180 255 L 235 255 L 235 266" />
+              <polygon id="fc-arr-cross-yes" class="fc-arrow-green" points="235,274 228,262 242,262" />
+
+              <!-- Connector: Cross C3 to LPG ? -> NO -> C3 Max -->
+              <path id="fc-line-cross-no" class="fc-path fc-no-path" d="M 515 165 L 620 165 Q 630 165 630 175 L 630 282" />
+              <polygon id="fc-arr-cross-no" class="fc-arrow-red" points="630,292 623,280 637,280" />
+
+              <!-- Connector: Inventory > 60% ? -> NO -> C3 Max -->
+              <path id="fc-line-inv60-no" class="fc-path fc-no-path" d="M 380 330 L 525 330" />
+              <polygon id="fc-arr-inv60-no" class="fc-arrow-red" points="535,330 523,323 523,337" />
+
+              <!-- Connector: Inventory > 60% ? -> YES -> Inventory > 70% ? -->
+              <path id="fc-line-inv60-yes" class="fc-path fc-yes-path" d="M 240 395 L 240 438 L 280 438 L 280 448" />
+              <polygon id="fc-arr-inv60-yes" class="fc-arrow-green" points="280,456 273,444 287,444" />
+
+              <!-- Connector: Inventory > 70% ? -> YES -> LPG Mode -->
+              <path id="fc-line-inv70-yes" class="fc-path fc-yes-path" d="M 210 495 L 165 495 Q 155 495 155 505 L 155 562" />
+              <polygon id="fc-arr-inv70-yes" class="fc-arrow-green" points="155,572 148,560 162,560" />
+
+              <!-- Connector: Inventory > 70% ? -> NO -> Optimization -->
+              <path id="fc-line-inv70-no" class="fc-path fc-no-path" d="M 475 495 L 555 495 Q 565 495 565 505 L 565 562" />
+              <polygon id="fc-arr-inv70-no" class="fc-arrow-red" points="565,572 558,560 572,560" />
+
+              <!-- Node: Start -->
+              <g id="fc-node-start" filter="url(#fcShadow)">
+                <rect x="245" y="18" width="250" height="54" rx="27" fill="url(#startGrad)" />
+                <text x="370" y="53" text-anchor="middle" fill="#ffffff" font-size="25" font-weight="700">Start</text>
+              </g>
+
+              <!-- Node: Cross C3 to LPG ? -->
+              <g id="fc-node-cross" class="fc-clickable" filter="url(#fcShadow)">
+                <polygon points="370,114 518,165 370,216 222,165" fill="url(#diamondGrad)" stroke="#1d6fa5" stroke-width="2.5" />
+                <text x="370" y="172" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">Cross C3 to LPG ?</text>
+              </g>
+
+              <!-- Badges for Cross C3 to LPG -->
+              <g id="fc-badge-cross-yes" class="fc-clickable">
+                <rect x="130" y="188" width="84" height="36" rx="18" fill="#198754" />
+                <text x="172" y="212" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">YES</text>
+              </g>
+              <g id="fc-badge-cross-no" class="fc-clickable">
+                <rect x="588" y="188" width="84" height="36" rx="18" fill="#e11d1d" />
+                <text x="630" y="212" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">NO</text>
+              </g>
+
+              <!-- Node: Inventory > 60% ? -->
+              <g id="fc-node-inv60" filter="url(#fcShadow)">
+                <polygon points="240,266 380,330 240,394 100,330" fill="url(#diamondGrad)" stroke="#1d6fa5" stroke-width="2.5" />
+                <text x="240" y="322" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">Inventory</text>
+                <text x="240" y="348" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">&gt; 60% ?</text>
+              </g>
+
+              <!-- Badges for Inventory > 60% -->
+              <g id="fc-badge-inv60-no">
+                <rect x="415" y="312" width="80" height="36" rx="18" fill="#e11d1d" />
+                <text x="455" y="336" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">NO</text>
+              </g>
+              <g id="fc-badge-inv60-yes">
+                <rect x="198" y="400" width="84" height="34" rx="17" fill="#198754" />
+                <text x="240" y="423" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">YES</text>
+              </g>
+
+              <!-- Result Box: C3 Max -->
+              <g id="fc-res-c3max" filter="url(#fcShadow)">
+                <rect x="538" y="294" width="194" height="72" rx="12" fill="#ffe4e6" stroke="#e15b64" stroke-width="2.2" />
+                <text x="635" y="339" text-anchor="middle" fill="#c81e1e" font-size="26" font-weight="800">C3 Max</text>
+              </g>
+
+              <!-- Node: Inventory > 70% ? -->
+              <g id="fc-node-inv70" filter="url(#fcShadow)">
+                <polygon points="342,434 476,495 342,556 208,495" fill="url(#diamondGrad)" stroke="#1d6fa5" stroke-width="2.5" />
+                <text x="342" y="487" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">Inventory</text>
+                <text x="342" y="513" text-anchor="middle" fill="#0f2557" font-size="20" font-weight="700">&gt; 70% ?</text>
+              </g>
+
+              <!-- Badges for Inventory > 70% -->
+              <g id="fc-badge-inv70-yes">
+                <rect x="115" y="508" width="80" height="36" rx="18" fill="#198754" />
+                <text x="155" y="532" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">YES</text>
+              </g>
+              <g id="fc-badge-inv70-no">
+                <rect x="525" y="508" width="80" height="36" rx="18" fill="#e11d1d" />
+                <text x="565" y="532" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">NO</text>
+              </g>
+
+              <!-- Result Box: LPG Mode -->
+              <g id="fc-res-lpg" filter="url(#fcShadow)">
+                <rect x="24" y="574" width="312" height="76" rx="12" fill="#dcfce7" stroke="#2e7d32" stroke-width="2.2" />
+                <circle cx="72" cy="612" r="30" fill="#1e824c" />
+                <path d="M72 592 C78 602, 86 608, 82 622 C80 628, 75 632, 72 632 C69 632, 62 628, 61 620 C59 610, 67 602, 72 592 Z" fill="#ffffff" />
+                <text x="205" y="621" text-anchor="middle" fill="#14532d" font-size="26" font-weight="800">LPG Mode</text>
+              </g>
+
+              <!-- Result Box: Optimization -->
+              <g id="fc-res-optimize" filter="url(#fcShadow)">
+                <rect x="396" y="574" width="330" height="76" rx="12" fill="#fef9c3" stroke="#eab308" stroke-width="2.2" />
+                <circle cx="444" cy="612" r="30" fill="#ea8c06" />
+                <rect x="430" y="614" width="6" height="12" fill="#fff" />
+                <rect x="440" y="605" width="6" height="21" fill="#fff" />
+                <rect x="450" y="595" width="6" height="31" fill="#fff" />
+                <text x="590" y="621" text-anchor="middle" fill="#b45309" font-size="26" font-weight="800">Optimization</text>
+              </g>
+            </svg>
+          </div>
+
+          <!-- View 2: Original Flowchart Image from folder -->
+          <div id="fc-view-original" class="fc-body hidden" style="background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 14px; text-align: center;">
+            <img src="Screenshot 2569-10-20 at 13.46.50.png" alt="ผังการตัดสินใจเลือกโหมดการผลิต (Operation Mode)" class="fc-orig-img" />
           </div>
         </div>
 
@@ -1168,6 +1105,6 @@
   </div>
 
   <script src="html2canvas.min.js"></script>
-  <script src="script.js?v=20261025_settings_modal_v6"></script>
+  <script src="script.js?v=20261025_settings_flowchart_v7"></script>
 </body>
 </html>

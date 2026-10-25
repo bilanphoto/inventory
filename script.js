@@ -1196,17 +1196,12 @@
       });
     });
 
-    // Open / Close Flowchart Modal
-    const modal = document.getElementById('flowchart-modal');
+    // Open / Close Flowchart Controls (Integrated into Settings Modal)
     document.getElementById('btn-open-flowchart')?.addEventListener('click', () => {
-      modal?.classList.remove('hidden');
+      openSettingsModal('flowchart');
     });
-    document.getElementById('btn-close-flowchart')?.addEventListener('click', () => {
-      modal?.classList.add('hidden');
-    });
-    document.getElementById('flowchart-backdrop')?.addEventListener('click', () => {
-      modal?.classList.add('hidden');
-    });
+    document.getElementById('btn-close-flowchart')?.addEventListener('click', closeSettingsModal);
+    document.getElementById('flowchart-backdrop')?.addEventListener('click', closeSettingsModal);
 
     // Modal Tabs (Interactive vs Original Screenshot)
     const tabInteractive = document.getElementById('btn-tab-interactive');
@@ -1238,6 +1233,7 @@
     // Aliases for backward-compatibility with sub-modal references
     const gspModal = settingsModal;
     const teamsModal = settingsModal;
+    const flowchartModal = settingsModal;
     const btnOpenGsp = document.getElementById('btn-open-gsp');
     const statusBanner = document.getElementById('gsp-status-banner');
 
@@ -1254,8 +1250,8 @@
       } else if (tabName === 'gsp') {
         updateGspModalUI();
         setupGspBookmarklet();
-      } else if (tabName === 'time') {
-        syncLiveDateTime();
+      } else if (tabName === 'flowchart') {
+        updateFlowchartUI(evaluateFlowchart());
       }
     }
 
