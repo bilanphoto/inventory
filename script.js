@@ -1518,11 +1518,12 @@
 
       if (window.location.protocol === 'file:') return;
 
-      // 2. Try fetching from backend (Apache notify.php, Python /api/notify/config)
+      // 2. Try fetching from backend (Apache notify.php, Python /api/notify/config, or central notify_config.json on GitHub Pages)
       const endpoints = [
         'notify.php?action=config',
         'api/notify/config',
-        '/api/notify/config'
+        '/api/notify/config',
+        'notify_config.json'
       ];
       let config = null;
       for (const ep of endpoints) {
