@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261025b" />
+  <link rel="stylesheet" href="styles.css?v=20261025_liveclock_v5" />
 </head>
 <body>
   <div class="viewport-wrapper">
@@ -96,6 +96,7 @@
           placeholder="กำลังดึงเวลา..."
           title="วันที่ปัจจุบัน (ดึงเวลา Internet Time อัตโนมัติ)"
           style="--x: 1295; --y: 10; --w: 155; --h: 28;"
+          readonly
         />
         <input
           id="inp-time"
@@ -105,7 +106,43 @@
           placeholder="--:--:-- น."
           title="เวลาปัจจุบัน (ดึงเวลา Internet Time เดินสดวินาทีต่อวินาที)"
           style="--x: 1455; --y: 8; --w: 145; --h: 32;"
+          readonly
         />
+
+        <!-- Fail-Safe Live Real-Time Clock Engine (Ticks every 1 second without fail) -->
+        <script>
+          (function() {
+            var THAI_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            function tickLiveClock() {
+              try {
+                var now = new Date();
+                var offsetMs = window.__internetTimeOffsetMs || 0;
+                var target = new Date(now.getTime() + offsetMs);
+                var utc = target.getTime() + (target.getTimezoneOffset() * 60000);
+                var bkk = new Date(utc + (3600000 * 7));
+
+                var day = bkk.getDate();
+                var month = THAI_MONTHS[bkk.getMonth()] || '';
+                var year = bkk.getFullYear();
+                var hh = String(bkk.getHours()).padStart(2, '0');
+                var mm = String(bkk.getMinutes()).padStart(2, '0');
+                var ss = String(bkk.getSeconds()).padStart(2, '0');
+
+                var elDate = document.getElementById('inp-date');
+                var elTime = document.getElementById('inp-time');
+                if (elDate) {
+                  var dStr = 'วันที่ ' + day + ' ' + month + ' ' + year;
+                  if (elDate.value !== dStr) elDate.value = dStr;
+                }
+                if (elTime) {
+                  elTime.value = hh + ':' + mm + ':' + ss + ' น.';
+                }
+              } catch (e) {}
+            }
+            tickLiveClock();
+            setInterval(tickLiveClock, 1000);
+          })();
+        </script>
 
         <!-- GSP Daily Report sync (Propane % → Inventory %) -->
         <div class="flowchart-inline-bar gsp-card1-slot" style="--x: 238; --y: 100; --w: 160; --h: 36;">
@@ -1092,6 +1129,6 @@
   </div>
 
   <script src="html2canvas.min.js"></script>
-  <script src="script.js?v=20261025b"></script>
+  <script src="script.js?v=20261025_liveclock_v5"></script>
 </body>
 </html>

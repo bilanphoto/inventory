@@ -218,6 +218,12 @@ input[type='number'] {
   letter-spacing: 0.02em;
 }
 
+.input-date[readonly],
+.input-time[readonly] {
+  cursor: default;
+  user-select: text;
+}
+
 /* Card 1: 62% inside 3D Tank */
 .tank-pct-group {
   justify-content: center;

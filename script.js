@@ -54,6 +54,7 @@
             const serverMs = data.timestamp ? data.timestamp * 1000 : new Date(data.iso).getTime();
             const latency = (Date.now() - startMs) / 2;
             internetTimeOffsetMs = (serverMs + latency) - Date.now();
+            window.__internetTimeOffsetMs = internetTimeOffsetMs;
             isInternetTimeSynced = true;
             console.log('[Internet Time] Synced via Server Time API (Offset:', internetTimeOffsetMs, 'ms)');
             updateInternetTimeBadge(true, 'Server API');
@@ -80,6 +81,7 @@
           const serverMs = new Date(iso).getTime();
           const latency = (Date.now() - startMs) / 2;
           internetTimeOffsetMs = (serverMs + latency) - Date.now();
+          window.__internetTimeOffsetMs = internetTimeOffsetMs;
           isInternetTimeSynced = true;
           console.log('[Internet Time] Synced via TimeAPI.io (Offset:', internetTimeOffsetMs, 'ms)');
           updateInternetTimeBadge(true, 'TimeAPI.io');
@@ -104,6 +106,7 @@
           const serverMs = new Date(data.datetime).getTime();
           const latency = (Date.now() - startMs) / 2;
           internetTimeOffsetMs = (serverMs + latency) - Date.now();
+          window.__internetTimeOffsetMs = internetTimeOffsetMs;
           isInternetTimeSynced = true;
           console.log('[Internet Time] Synced via WorldTimeAPI (Offset:', internetTimeOffsetMs, 'ms)');
           updateInternetTimeBadge(true, 'WorldTimeAPI');
