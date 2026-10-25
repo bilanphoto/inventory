@@ -6,6 +6,15 @@
   "demandTon": 14000,
   "productPrice": 300,
   "energyPrice": 2650,
+  "scheduleDays": [
+    "mon",
+    "tue",
+    "wed",
+    "thu",
+    "fri",
+    "sat",
+    "sun"
+  ],
   "gspData": {
     "propanePct": 68.17,
     "lpgPct": 36.19,

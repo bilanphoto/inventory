@@ -145,6 +145,9 @@ if ($method === 'POST') {
         $cfg['scheduleTime'] = trim($data['scheduleTime']);
         $cfg['scheduleTimes'] = array_values(array_filter(array_map('trim', explode(',', str_replace(';', ',', $cfg['scheduleTime'])))));
     }
+    if (isset($data['scheduleDays']) && is_array($data['scheduleDays'])) {
+        $cfg['scheduleDays'] = array_values(array_filter(array_map('trim', $data['scheduleDays'])));
+    }
 
     saveConfig($configFile, $cfg);
     echo json_encode(['ok' => true, 'config' => $cfg]);

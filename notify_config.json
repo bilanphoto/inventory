@@ -6,10 +6,27 @@
     "20:00"
   ],
   "scheduleTime": "08:00, 20:00",
-  "lastSent": "25/10/2026 13:32:46",
+  "scheduleDays": [
+    "mon",
+    "tue",
+    "wed",
+    "thu",
+    "fri",
+    "sat",
+    "sun"
+  ],
+  "lastSent": "25/10/2026 13:34:46",
   "lastStatus": "สำเร็จ (202 Accepted)",
   "lastError": null,
   "sendLogs": [
+    {
+      "timestamp": "25/10/2026 13:34:46",
+      "reason": "ตั้งเวลาอัตโนมัติประจำวัน (รอบเปลี่ยนกะการผลิต)",
+      "status": "สำเร็จ (202 Accepted)",
+      "statusCode": 202,
+      "recommendedMode": "Optimization (2. Optimize Mode)",
+      "ok": true
+    },
     {
       "timestamp": "25/10/2026 13:32:46",
       "reason": "ทดสอบระบบ Automation (รอบกะการผลิต)",

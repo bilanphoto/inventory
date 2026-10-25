@@ -838,6 +838,14 @@ def schedule_worker():
             config = CURRENT_STATE.get("notifyConfig", {})
             if config.get("scheduleEnabled"):
                 now = datetime.now()
+                # Check day of week (mon, tue, wed, thu, fri, sat, sun)
+                day_abbr_list = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+                current_day = day_abbr_list[now.weekday()]
+                allowed_days = config.get("scheduleDays", day_abbr_list)
+                if allowed_days and current_day not in allowed_days:
+                    time.sleep(15)
+                    continue
+
                 current_hm = now.strftime("%H:%M")
                 current_ymd_hm = now.strftime("%Y-%m-%d %H:%M")
                 times_list = parse_schedule_times(config)
@@ -1026,6 +1034,8 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
             elif "scheduleTime" in data and isinstance(data["scheduleTime"], str):
                 config["scheduleTime"] = data["scheduleTime"].strip()
                 config["scheduleTimes"] = [t.strip() for t in config["scheduleTime"].replace(";", ",").split(",") if t.strip()]
+            if "scheduleDays" in data and isinstance(data["scheduleDays"], list):
+                config["scheduleDays"] = [d.strip() for d in data["scheduleDays"] if isinstance(d, str) and d.strip()]
             save_notify_config(config)
             self._send_json({"ok": True, "config": config})
             return

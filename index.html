@@ -881,6 +881,27 @@
                 <button type="button" class="btn-time-preset" data-t1="20:00" data-t2="">20:00 (ค่ำ)</button>
               </div>
 
+              <!-- Day of Week Selector: วันจันทร์ - วันอาทิตย์ -->
+              <div class="teams-days-selector-wrap">
+                <div class="teams-days-header">
+                  <span class="teams-preset-label">📅 เลือกวันแจ้งเตือน:</span>
+                  <div class="teams-days-presets">
+                    <button type="button" class="btn-day-preset active" data-preset="all">⭐ ทุกวัน</button>
+                    <button type="button" class="btn-day-preset" data-preset="workdays">จ.-ศ. (วันทำการ)</button>
+                    <button type="button" class="btn-day-preset" data-preset="weekends">ส.-อา. (วันหยุด)</button>
+                  </div>
+                </div>
+                <div class="teams-days-chips" id="teams-days-chips">
+                  <button type="button" class="btn-day-chip active" data-day="mon" title="วันจันทร์">จันทร์</button>
+                  <button type="button" class="btn-day-chip active" data-day="tue" title="วันอังคาร">อังคาร</button>
+                  <button type="button" class="btn-day-chip active" data-day="wed" title="วันพุธ">พุธ</button>
+                  <button type="button" class="btn-day-chip active" data-day="thu" title="วันพฤหัสบดี">พฤหัสฯ</button>
+                  <button type="button" class="btn-day-chip active" data-day="fri" title="วันศุกร์">ศุกร์</button>
+                  <button type="button" class="btn-day-chip active" data-day="sat" title="วันเสาร์">เสาร์</button>
+                  <button type="button" class="btn-day-chip active" data-day="sun" title="วันอาทิตย์">อาทิตย์</button>
+                </div>
+              </div>
+
               <div id="teams-schedule-hint" class="teams-schedule-hint">
                 💡 ปิดการตั้งเวลาอยู่: เปิดสวิตช์และกดปุ่มบันทึกเพื่อเริ่มส่งแจ้งเตือนทุกวัน
               </div>

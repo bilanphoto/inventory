@@ -1394,6 +1394,59 @@
       } catch (e) {}
     }
 
+    const DAY_NAMES_THAI = {
+      mon: 'จันทร์',
+      tue: 'อังคาร',
+      wed: 'พุธ',
+      thu: 'พฤหัสฯ',
+      fri: 'ศุกร์',
+      sat: 'เสาร์',
+      sun: 'อาทิตย์'
+    };
+    const ALL_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+    function getSelectedDays() {
+      const activeChips = document.querySelectorAll('.btn-day-chip.active');
+      const days = Array.from(activeChips).map((el) => el.getAttribute('data-day')).filter(Boolean);
+      return days.length ? days : ALL_DAYS.slice();
+    }
+
+    function setSelectedDays(days) {
+      if (!Array.isArray(days) || !days.length) days = ALL_DAYS.slice();
+      document.querySelectorAll('.btn-day-chip').forEach((chip) => {
+        const d = chip.getAttribute('data-day');
+        chip.classList.toggle('active', days.includes(d));
+      });
+      updateDayPresetButtons(days);
+    }
+
+    function updateDayPresetButtons(days) {
+      if (!Array.isArray(days)) days = getSelectedDays();
+      const isAll = days.length === 7;
+      const isWorkdays = days.length === 5 && ['mon', 'tue', 'wed', 'thu', 'fri'].every((d) => days.includes(d));
+      const isWeekends = days.length === 2 && ['sat', 'sun'].every((d) => days.includes(d));
+
+      document.querySelectorAll('.btn-day-preset').forEach((btn) => {
+        const preset = btn.getAttribute('data-preset');
+        if (preset === 'all') btn.classList.toggle('active', isAll);
+        else if (preset === 'workdays') btn.classList.toggle('active', isWorkdays);
+        else if (preset === 'weekends') btn.classList.toggle('active', isWeekends);
+        else btn.classList.remove('active');
+      });
+    }
+
+    function formatDaysSummary(days) {
+      if (!Array.isArray(days) || days.length === 7) return 'ทุกวัน (จันทร์ - อาทิตย์)';
+      if (days.length === 5 && ['mon', 'tue', 'wed', 'thu', 'fri'].every((d) => days.includes(d))) {
+        return 'วันจันทร์ - ศุกร์ (วันทำการ)';
+      }
+      if (days.length === 2 && ['sat', 'sun'].every((d) => days.includes(d))) {
+        return 'วันเสาร์ - อาทิตย์ (วันหยุด)';
+      }
+      const names = days.map((d) => DAY_NAMES_THAI[d] || d);
+      return `วัน ${names.join(', ')}`;
+    }
+
     function updatePresetButtons(t1, t2) {
       document.querySelectorAll('.btn-time-preset').forEach((btn) => {
         const bt1 = btn.getAttribute('data-t1') || '';
@@ -1409,10 +1462,19 @@
         const localCfgRaw = localStorage.getItem('ptt_teams_schedule_config');
         const localUrl = localStorage.getItem('ptt_teams_webhook_url');
         const localLogsRaw = localStorage.getItem('ptt_teams_send_logs');
+        const localDaysRaw = localStorage.getItem('ptt_teams_schedule_days');
 
         let isEnabled = true;
         let t1 = '08:00';
         let t2 = '20:00';
+        let days = ALL_DAYS.slice();
+
+        if (localDaysRaw) {
+          try {
+            const parsedDays = JSON.parse(localDaysRaw);
+            if (Array.isArray(parsedDays) && parsedDays.length) days = parsedDays;
+          } catch (e) {}
+        }
 
         if (localCfgRaw) {
           try {
@@ -1427,6 +1489,9 @@
                 t1 = parts[0] || '08:00';
                 t2 = parts[1] || '';
               }
+              if (Array.isArray(localCfg.scheduleDays) && localCfg.scheduleDays.length) {
+                days = localCfg.scheduleDays;
+              }
             }
           } catch (e) {}
         }
@@ -1434,8 +1499,9 @@
         if (teamsScheduleToggle) teamsScheduleToggle.checked = isEnabled;
         if (teamsScheduleTime1) teamsScheduleTime1.value = t1;
         if (teamsScheduleTime2) teamsScheduleTime2.value = t2;
+        setSelectedDays(days);
         if (teamsScheduleDot) teamsScheduleDot.classList.toggle('active', isEnabled);
-        updateScheduleHint(isEnabled, [t1, t2].filter(Boolean));
+        updateScheduleHint(isEnabled, [t1, t2].filter(Boolean), days);
         updatePresetButtons(t1, t2);
 
         if (localUrl && teamsWebhookUrl) {
@@ -1477,6 +1543,7 @@
           const isEnabled = Boolean(config.scheduleEnabled);
           let t1 = '08:00';
           let t2 = '20:00';
+          let days = ALL_DAYS.slice();
           if (Array.isArray(config.scheduleTimes) && config.scheduleTimes.length) {
             t1 = config.scheduleTimes[0] || '';
             t2 = config.scheduleTimes[1] || '';
@@ -1485,11 +1552,15 @@
             t1 = parts[0] || '08:00';
             t2 = parts[1] || '';
           }
+          if (Array.isArray(config.scheduleDays) && config.scheduleDays.length) {
+            days = config.scheduleDays;
+          }
           if (teamsScheduleToggle) teamsScheduleToggle.checked = isEnabled;
           if (teamsScheduleTime1) teamsScheduleTime1.value = t1;
           if (teamsScheduleTime2) teamsScheduleTime2.value = t2;
+          setSelectedDays(days);
           if (teamsScheduleDot) teamsScheduleDot.classList.toggle('active', isEnabled);
-          updateScheduleHint(isEnabled, [t1, t2].filter(Boolean));
+          updateScheduleHint(isEnabled, [t1, t2].filter(Boolean), days);
           updatePresetButtons(t1, t2);
         }
 
@@ -1505,17 +1576,19 @@
       }
     };
 
-    function updateScheduleHint(enabled, times) {
+    function updateScheduleHint(enabled, times, days) {
       if (!teamsScheduleHint) return;
       if (!Array.isArray(times)) {
         times = (times || '').toString().split(',').map((s) => s.trim()).filter(Boolean);
       }
+      if (!days) days = getSelectedDays();
+      const daysText = formatDaysSummary(days);
       if (enabled && times.length) {
         teamsScheduleHint.className = 'teams-schedule-hint is-on';
         if (times.length === 1) {
-          teamsScheduleHint.textContent = `⏰ กำลังเปิดใช้งาน: ส่งสรุปแจ้งเตือนเข้ากลุ่ม MS Teams อัตโนมัติทุกวันเวลา ${times[0]} น.`;
+          teamsScheduleHint.textContent = `⏰ กำลังเปิดใช้งาน: ส่งสรุปแจ้งเตือนเข้ากลุ่ม MS Teams อัตโนมัติ (${daysText}) เวลา ${times[0]} น.`;
         } else {
-          teamsScheduleHint.textContent = `⏰ กำลังเปิดใช้งาน: ส่งสรุปแจ้งเตือนเข้ากลุ่ม MS Teams อัตโนมัติทุกวัน ${times.length} รอบ เวลา ${times.join(' น. และ ')} น.`;
+          teamsScheduleHint.textContent = `⏰ กำลังเปิดใช้งาน: ส่งสรุปแจ้งเตือนเข้ากลุ่ม MS Teams อัตโนมัติ (${daysText}) ${times.length} รอบ เวลา ${times.join(' น. และ ')} น.`;
         }
       } else {
         teamsScheduleHint.className = 'teams-schedule-hint';
@@ -1549,26 +1622,54 @@
         if (teamsScheduleTime1) teamsScheduleTime1.value = t1;
         if (teamsScheduleTime2) teamsScheduleTime2.value = t2;
         const curTimes = [t1, t2].filter(Boolean);
-        updateScheduleHint(teamsScheduleToggle?.checked, curTimes);
+        updateScheduleHint(teamsScheduleToggle?.checked, curTimes, getSelectedDays());
+      });
+    });
+
+    // Day of week chip click
+    document.querySelectorAll('.btn-day-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        chip.classList.toggle('active');
+        const count = document.querySelectorAll('.btn-day-chip.active').length;
+        if (count === 0) chip.classList.add('active'); // Keep at least 1 day selected
+        const days = getSelectedDays();
+        updateDayPresetButtons(days);
+        const t1 = teamsScheduleTime1?.value?.trim() || '';
+        const t2 = teamsScheduleTime2?.value?.trim() || '';
+        updateScheduleHint(Boolean(teamsScheduleToggle?.checked), [t1, t2].filter(Boolean), days);
+      });
+    });
+
+    // Day preset button click (All / Workdays / Weekends)
+    document.querySelectorAll('.btn-day-preset').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const preset = btn.getAttribute('data-preset');
+        let days = ALL_DAYS.slice();
+        if (preset === 'workdays') days = ['mon', 'tue', 'wed', 'thu', 'fri'];
+        else if (preset === 'weekends') days = ['sat', 'sun'];
+        setSelectedDays(days);
+        const t1 = teamsScheduleTime1?.value?.trim() || '';
+        const t2 = teamsScheduleTime2?.value?.trim() || '';
+        updateScheduleHint(Boolean(teamsScheduleToggle?.checked), [t1, t2].filter(Boolean), days);
       });
     });
 
     teamsScheduleToggle?.addEventListener('change', () => {
       const t1 = teamsScheduleTime1?.value?.trim() || '';
       const t2 = teamsScheduleTime2?.value?.trim() || '';
-      updateScheduleHint(teamsScheduleToggle.checked, [t1, t2].filter(Boolean));
+      updateScheduleHint(teamsScheduleToggle.checked, [t1, t2].filter(Boolean), getSelectedDays());
     });
 
     teamsScheduleTime1?.addEventListener('change', () => {
       const t1 = teamsScheduleTime1?.value?.trim() || '';
       const t2 = teamsScheduleTime2?.value?.trim() || '';
-      updateScheduleHint(teamsScheduleToggle?.checked, [t1, t2].filter(Boolean));
+      updateScheduleHint(teamsScheduleToggle?.checked, [t1, t2].filter(Boolean), getSelectedDays());
     });
 
     teamsScheduleTime2?.addEventListener('change', () => {
       const t1 = teamsScheduleTime1?.value?.trim() || '';
       const t2 = teamsScheduleTime2?.value?.trim() || '';
-      updateScheduleHint(teamsScheduleToggle?.checked, [t1, t2].filter(Boolean));
+      updateScheduleHint(teamsScheduleToggle?.checked, [t1, t2].filter(Boolean), getSelectedDays());
     });
 
     function applyGrayscaleToCard(targetCtx, x, y, w, h, radius, scale = 1) {
@@ -2177,11 +2278,14 @@
       const scheduleTimes = [t1, t2].filter(Boolean);
       if (!scheduleTimes.length) scheduleTimes.push('08:00');
       const scheduleTimeStr = scheduleTimes.join(', ');
+      const selectedDays = getSelectedDays();
+      const daysSummary = formatDaysSummary(selectedDays);
 
       const scheduleConfig = {
         scheduleEnabled: isEnabled,
         scheduleTimes: scheduleTimes,
         scheduleTime: scheduleTimeStr,
+        scheduleDays: selectedDays,
         updatedAt: new Date().toISOString()
       };
 
@@ -2190,6 +2294,7 @@
         localStorage.setItem('ptt_teams_schedule_config', JSON.stringify(scheduleConfig));
         localStorage.setItem('ptt_teams_schedule_enabled', isEnabled ? 'true' : 'false');
         localStorage.setItem('ptt_teams_schedule_times', JSON.stringify(scheduleTimes));
+        localStorage.setItem('ptt_teams_schedule_days', JSON.stringify(selectedDays));
       } catch (e) {
         console.warn('localStorage save failed', e);
       }
@@ -2198,11 +2303,11 @@
       if (teamsStatusBanner && teamsStatusText) {
         teamsStatusBanner.className = 'teams-status-banner is-success';
         teamsStatusText.textContent = isEnabled
-          ? `✅ บันทึกการตั้งเวลาสำเร็จ! ระบบตั้งเวลาส่งแจ้งเตือนทุกวันเวลา ${scheduleTimes.join(' น. และ ')} น. เรียบร้อยแล้ว`
+          ? `✅ บันทึกการตั้งเวลาสำเร็จ! ระบบตั้งเวลาส่งแจ้งเตือน (${daysSummary}) เวลา ${scheduleTimes.join(' น. และ ')} น. เรียบร้อยแล้ว`
           : `✅ บันทึกแล้ว: ปิดการตั้งเวลาส่งแจ้งเตือนประจำวัน`;
       }
       if (teamsScheduleDot) teamsScheduleDot.classList.toggle('active', isEnabled);
-      updateScheduleHint(isEnabled, scheduleTimes);
+      updateScheduleHint(isEnabled, scheduleTimes, selectedDays);
 
       // 3. BACKGROUND SYNC TO BACKEND (notify.php, api/notify/config, /api/notify/config)
       const endpoints = [
@@ -2219,6 +2324,7 @@
               scheduleEnabled: isEnabled,
               scheduleTimes: scheduleTimes,
               scheduleTime: scheduleTimeStr,
+              scheduleDays: selectedDays,
             }),
           });
           if (resp.ok) break;

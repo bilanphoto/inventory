@@ -110,6 +110,14 @@ def send_alert():
     webhook_url = os.environ.get("TEAMS_WEBHOOK_URL") or config.get("webhookUrl") or DEFAULT_WEBHOOK
     state = load_state()
 
+    # Check day of week (Thai time: Mon=0, ..., Sun=6)
+    day_abbr_list = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+    current_day = day_abbr_list[now_thai.weekday()]
+    allowed_days = config.get("scheduleDays") or state.get("scheduleDays") or day_abbr_list
+    if allowed_days and current_day not in allowed_days:
+        print(f"ℹ️ Today is {current_day}, not in configured scheduleDays {allowed_days}. Skipping alert.")
+        return True
+
     inv_pct = float(state.get("inventoryPct", 68.17))
     cap_ton = float(state.get("inventoryCap", 20000))
     inv_ton = round(inv_pct / 100 * cap_ton)

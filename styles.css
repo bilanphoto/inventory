@@ -1570,6 +1570,88 @@ input[type='number'] {
   border-color: #4f46e5;
 }
 
+/* Days of Week Selector */
+.teams-days-selector-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #f8fafc;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.teams-days-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.teams-days-presets {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-day-preset {
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-day-preset:hover {
+  border-color: #6366f1;
+  color: #4f46e5;
+  background: #eef2ff;
+}
+
+.btn-day-preset.active {
+  background: #4f46e5;
+  color: #ffffff;
+  border-color: #4f46e5;
+}
+
+.teams-days-chips {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.btn-day-chip {
+  padding: 6px 2px;
+  border-radius: 6px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.btn-day-chip:hover {
+  border-color: #818cf8;
+  color: #4f46e5;
+  background: #f5f3ff;
+}
+
+.btn-day-chip.active {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: #ffffff;
+  border-color: #4338ca;
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.25);
+}
+
 .teams-schedule-hint {
   font-size: 12px;
   color: #475569;
