@@ -1279,6 +1279,344 @@ input[type='number'] {
   50% { transform: scale(1.35); opacity: 0.75; }
 }
 
+/* PTT Logo Settings Hotspot Button */
+.btn-ptt-logo-settings {
+  position: absolute;
+  left: calc(var(--x) / 1607 * 100%);
+  top: calc(var(--y) / 896 * 100%);
+  width: calc(var(--w) / 1607 * 100%);
+  height: calc(var(--h) / 896 * 100%);
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+.btn-ptt-logo-settings:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(99, 102, 241, 0.6);
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+.settings-hint-pill {
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: #ffffff;
+  font-family: var(--font-main);
+  font-size: calc(10 / 1607 * 100cqw);
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.btn-ptt-logo-settings:hover .settings-hint-pill {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Master Settings Modal Dialog */
+.settings-dialog {
+  width: min(880px, 96vw);
+  max-height: 92vh;
+  background: #f8fafc;
+  color: #0f172a;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-modal-header {
+  background: linear-gradient(90deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
+  flex-shrink: 0;
+}
+
+.settings-gear-circle {
+  background: #312e81;
+  border: 1.5px solid #818cf8;
+  color: #ffffff;
+}
+
+/* Settings Tabs Bar */
+.settings-tabs-bar {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border-bottom: 1.5px solid #e2e8f0;
+  padding: 0 16px;
+  gap: 6px;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.settings-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-family: var(--font-main);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2.5px solid transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.settings-tab-btn:hover {
+  color: #4f46e5;
+  background: #f8fafc;
+}
+
+.settings-tab-btn.active {
+  color: #4338ca;
+  font-weight: 700;
+  border-bottom-color: #4f46e5;
+  background: #eef2ff;
+}
+
+.tab-icon {
+  font-size: 15px;
+}
+
+.tab-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+  display: none;
+}
+
+.tab-badge-dot.active {
+  display: inline-block;
+}
+
+.live-tab-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+  animation: pulse-green 1.5s infinite;
+}
+
+/* Settings Modal Body & Tab Panes */
+.settings-modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.settings-tab-pane {
+  display: none;
+}
+
+.settings-tab-pane.active {
+  display: block;
+  animation: fadeInPane 0.2s ease;
+}
+
+@keyframes fadeInPane {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* User Tab Styling */
+.user-settings-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.user-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.user-avatar-large {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+}
+
+.user-info-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-name-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.user-name-title span {
+  color: #4f46e5;
+}
+
+.user-role-badge {
+  font-size: 13px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.user-auth-status {
+  font-size: 12px;
+  color: #059669;
+  font-weight: 600;
+}
+
+.btn-user-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1.5px solid #ef4444;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-family: var(--font-main);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: fit-content;
+}
+
+.btn-user-logout:hover {
+  background: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+}
+
+/* Time Tab Styling */
+.time-settings-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.time-status-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.time-icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  border: 1.5px solid #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.time-status-info {
+  flex: 1;
+}
+
+.time-status-info h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 2px 0;
+}
+
+.time-status-info p {
+  font-size: 13px;
+  color: #059669;
+  margin: 0;
+  font-weight: 500;
+}
+
+.btn-resync-time {
+  padding: 9px 15px;
+  border-radius: 8px;
+  border: 1px solid #10b981;
+  background: #10b981;
+  color: #ffffff;
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-resync-time:hover {
+  background: #059669;
+  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35);
+}
+
+.time-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.time-detail-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.time-detail-label {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.time-detail-val {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.time-clock-val {
+  font-family: var(--font-num);
+  font-size: 18px;
+  color: #0284c7;
+}
+
 /* Modal Dialog */
 .teams-dialog {
   width: min(840px, 96vw);

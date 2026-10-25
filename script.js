@@ -1228,11 +1228,59 @@
     });
 
     // ==================================================================
-    // GSP Daily Report Modal & Live Sync Bindings
+    // Master Settings Modal & Multi-Tab Controller
     // ==================================================================
-    const gspModal = document.getElementById('gsp-modal');
+    const settingsModal = document.getElementById('settings-modal');
+    const btnOpenSettings = document.getElementById('btn-open-settings');
+    const btnCloseSettings = document.getElementById('btn-close-settings');
+    const settingsBackdrop = document.getElementById('settings-backdrop');
+
+    // Aliases for backward-compatibility with sub-modal references
+    const gspModal = settingsModal;
+    const teamsModal = settingsModal;
     const btnOpenGsp = document.getElementById('btn-open-gsp');
     const statusBanner = document.getElementById('gsp-status-banner');
+
+    function switchSettingsTab(tabName) {
+      document.querySelectorAll('.settings-tab-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === tabName);
+      });
+      document.querySelectorAll('.settings-tab-pane').forEach((pane) => {
+        pane.classList.toggle('active', pane.getAttribute('data-tab') === tabName);
+      });
+      if (tabName === 'teams') {
+        renderTeamsPreviewText();
+        fetchTeamsConfig();
+      } else if (tabName === 'gsp') {
+        updateGspModalUI();
+        setupGspBookmarklet();
+      } else if (tabName === 'time') {
+        syncLiveDateTime();
+      }
+    }
+
+    function openSettingsModal(tabName = 'teams') {
+      switchSettingsTab(tabName);
+      settingsModal?.classList.remove('hidden');
+    }
+
+    function closeSettingsModal() {
+      settingsModal?.classList.add('hidden');
+    }
+
+    btnOpenSettings?.addEventListener('click', () => {
+      openSettingsModal('teams');
+    });
+
+    btnCloseSettings?.addEventListener('click', closeSettingsModal);
+    settingsBackdrop?.addEventListener('click', closeSettingsModal);
+
+    document.querySelectorAll('.settings-tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const tab = btn.getAttribute('data-tab');
+        if (tab) switchSettingsTab(tab);
+      });
+    });
 
     const updateGspModalUI = () => {
       const p = clamp(parseNum(state.gspData.propanePct, 50.81), 0, 100);
@@ -1361,10 +1409,7 @@
     };
 
     btnOpenGsp?.addEventListener('click', () => {
-      updateGspModalUI();
-      setupGspBookmarklet();
-      gspModal?.classList.remove('hidden');
-      // If on localhost, attempt background refresh; if online, display current data without error
+      openSettingsModal('gsp');
       const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
       if (isLocalHost) {
         doFetchGspFromChrome(false);
@@ -1378,12 +1423,8 @@
       }
     });
 
-    document.getElementById('btn-close-gsp')?.addEventListener('click', () => {
-      gspModal?.classList.add('hidden');
-    });
-    document.getElementById('gsp-backdrop')?.addEventListener('click', () => {
-      gspModal?.classList.add('hidden');
-    });
+    document.getElementById('btn-close-gsp')?.addEventListener('click', closeSettingsModal);
+    document.getElementById('gsp-backdrop')?.addEventListener('click', closeSettingsModal);
 
     ['propane', 'lpg', 'ngl', 'sum'].forEach((k) => {
       const el = document.getElementById(`inp-gsp-${k}`);
@@ -1415,7 +1456,7 @@
         syncInputsFromState();
         renderBoard();
         syncBackendState();
-        gspModal?.classList.add('hidden');
+        closeSettingsModal();
       });
     });
 
@@ -1433,13 +1474,12 @@
     // ==================================================================
     // MS Teams Notification & Scheduling Bindings
     // ==================================================================
-    const teamsModal = document.getElementById('teams-modal');
     const btnOpenTeams = document.getElementById('btn-open-teams');
     const btnCloseTeams = document.getElementById('btn-close-teams');
     const teamsBackdrop = document.getElementById('teams-backdrop');
     const teamsStatusBanner = document.getElementById('teams-status-banner');
     const teamsStatusText = document.getElementById('teams-status-text');
-    const teamsScheduleDot = document.getElementById('teams-schedule-dot');
+    const teamsScheduleDot = document.getElementById('teams-tab-dot') || document.getElementById('teams-schedule-dot');
     const teamsScheduleToggle = document.getElementById('teams-schedule-toggle');
     const teamsScheduleTime1 = document.getElementById('teams-schedule-time-1');
     const teamsScheduleTime2 = document.getElementById('teams-schedule-time-2');
@@ -1746,18 +1786,11 @@
     }
 
     btnOpenTeams?.addEventListener('click', () => {
-      renderTeamsPreviewText();
-      fetchTeamsConfig();
-      teamsModal?.classList.remove('hidden');
+      openSettingsModal('teams');
     });
 
-    btnCloseTeams?.addEventListener('click', () => {
-      teamsModal?.classList.add('hidden');
-    });
-
-    teamsBackdrop?.addEventListener('click', () => {
-      teamsModal?.classList.add('hidden');
-    });
+    btnCloseTeams?.addEventListener('click', closeSettingsModal);
+    teamsBackdrop?.addEventListener('click', closeSettingsModal);
 
     teamsQuickNote?.addEventListener('input', renderTeamsPreviewText);
 
@@ -2821,6 +2854,7 @@
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
 
+        document.getElementById('settings-modal')?.classList.add('hidden');
         denyAccess();
       }
     });
