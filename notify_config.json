@@ -15,10 +15,18 @@
     "sat",
     "sun"
   ],
-  "lastSent": "25/10/2026 13:34:46",
+  "lastSent": "26/10/2026 18:45:00",
   "lastStatus": "สำเร็จ (202 Accepted)",
   "lastError": null,
   "sendLogs": [
+    {
+      "timestamp": "26/10/2026 18:45:00",
+      "reason": "ทดสอบระบบ Automation (รอบกะการผลิต)",
+      "status": "สำเร็จ (202 Accepted)",
+      "statusCode": 202,
+      "recommendedMode": "Optimization (2. Optimize Mode)",
+      "ok": true
+    },
     {
       "timestamp": "25/10/2026 13:34:46",
       "reason": "ตั้งเวลาอัตโนมัติประจำวัน (รอบเปลี่ยนกะการผลิต)",
@@ -34,13 +42,6 @@
       "statusCode": 202,
       "recommendedMode": "Optimization (2. Optimize Mode)",
       "ok": true
-    },
-    {
-      "timestamp": "25/10/2026 13:28:39",
-      "reason": "ทดสอบระบบ Automation (รอบกะการผลิต)",
-      "status": "Error: <urlopen error [Errno 8] nodename nor servname provided, or not known>",
-      "statusCode": 0,
-      "ok": false
     }
   ]
 }

@@ -75,14 +75,14 @@ CURRENT_STATE = {
     "dateText": _init_date,
     "timeText": _init_time,
     # Card 1: Inventory
-    "inventoryPct": 68.17,  # Propane % from GSP Daily Report (Tank Farm)
-    "inventoryTon": 13634,
+    "inventoryPct": 65.87,  # Propane % from GSP Daily Report (Tank Farm)
+    "inventoryTon": 13174,
     "inventoryCap": 20000,
     # Card 2: Tank Farm Demand
     "demandPct": 70,
     "demandTon": 14000,
     "demandCap": 20000,
-    "remainingTon": 6366,
+    "remainingTon": 6826,
     "tanksUsed": 7,
     "tanksTotal": 10,
     # Card 3: Product Price
@@ -97,15 +97,15 @@ CURRENT_STATE = {
     "crossC3ToLpg": True,
     # GSP Daily Report Tank Farm Values (from https://gspdailyreport.pttplc.com/DailyReport/Index)
     "gspData": {
-        "propanePct": 68.17,
-        "lpgPct": 36.19,
-        "nglPct": 62.39,
-        "propanePlusLpgPct": 43.17,
+        "propanePct": 65.87,
+        "lpgPct": 40.06,
+        "nglPct": 63.15,
+        "propanePlusLpgPct": 45.69,
         "plant": "Tank Farm",
-        "meetingDate": "25/10/2026",
+        "meetingDate": "26/10/2026",
         "targetField": "inventory",  # 'inventory' | 'demand' | 'none'
         "sourceMetric": "propanePct",  # 'propanePct' | 'lpgPct' | 'nglPct' | 'propanePlusLpgPct'
-        "lastSync": "25/10/2026 09:30",
+        "lastSync": "26/10/2026 18:45",
         "syncMethod": "ready",
     },
     # Production Modes configuration (editable numbers)
@@ -461,8 +461,8 @@ def build_teams_payload(
     rec_mode_name = flow.get("recommendedLabel", "1. C3 Max Mode")
     rec_key = flow.get("recommendedMode", "optimize")
 
-    inv_pct = state.get("inventoryPct", 68.17)
-    inv_ton = state.get("inventoryTon", 10162)
+    inv_pct = state.get("inventoryPct", 65.87)
+    inv_ton = state.get("inventoryTon", 13174)
     inv_cap = state.get("inventoryCap", 20000)
 
     demand_pct = state.get("demandPct", 70)
@@ -531,10 +531,10 @@ def build_teams_payload(
         f"- 🔥 **ต้นทุนพลังงาน (Energy Price):** **{energy_price} MMBtu/Ton** ({energy_chg})",
         "",
         "### 🌐 ข้อมูลจริงจาก GSP Daily Report (Tank Farm):",
-        f"- **Propane:** {gsp.get('propanePct', 68.17):.2f}%",
-        f"- **LPG:** {gsp.get('lpgPct', 36.19):.2f}%",
-        f"- **NGL:** {gsp.get('nglPct', 62.39):.2f}%",
-        f"- **Propane + LPG =** {gsp.get('propanePlusLpgPct', 43.17):.2f}%",
+        f"- **Propane:** {gsp.get('propanePct', 65.87):.2f}%",
+        f"- **LPG:** {gsp.get('lpgPct', 40.06):.2f}%",
+        f"- **NGL:** {gsp.get('nglPct', 63.15):.2f}%",
+        f"- **Propane + LPG =** {gsp.get('propanePlusLpgPct', 45.69):.2f}%",
         "",
         "### ⚙️ การเลือกโหมดการผลิต (3 Production Modes):",
         f"- **1. C3 Max Mode:** {'YES (★ เลือกโหมดนี้)' if rec_key == 'c3_max' else 'NO'}",
@@ -643,10 +643,10 @@ def build_teams_payload(
         {
             "type": "FactSet",
             "facts": [
-                {"title": "Propane:", "value": f"{gsp.get('propanePct', 68.17):.2f}%"},
-                {"title": "LPG:", "value": f"{gsp.get('lpgPct', 36.19):.2f}%"},
-                {"title": "NGL:", "value": f"{gsp.get('nglPct', 62.39):.2f}%"},
-                {"title": "Propane + LPG:", "value": f"{gsp.get('propanePlusLpgPct', 43.17):.2f}%"},
+                {"title": "Propane:", "value": f"{gsp.get('propanePct', 65.87):.2f}%"},
+                {"title": "LPG:", "value": f"{gsp.get('lpgPct', 40.06):.2f}%"},
+                {"title": "NGL:", "value": f"{gsp.get('nglPct', 63.15):.2f}%"},
+                {"title": "Propane + LPG:", "value": f"{gsp.get('propanePlusLpgPct', 45.69):.2f}%"},
             ],
         },
         {

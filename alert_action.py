@@ -36,23 +36,23 @@ def load_config() -> dict:
 
 def load_state() -> dict:
     state = {
-        "inventoryPct": 68.17,
-        "inventoryTon": 13634,
+        "inventoryPct": 65.87,
+        "inventoryTon": 13174,
         "inventoryCap": 20000,
         "demandPct": 70,
         "demandTon": 14000,
         "productPrice": 300,
         "energyPrice": 2650,
         "gspData": {
-            "propanePct": 68.17,
-            "lpgPct": 36.19,
-            "nglPct": 62.39,
-            "propanePlusLpgPct": 43.17,
+            "propanePct": 65.87,
+            "lpgPct": 40.06,
+            "nglPct": 63.15,
+            "propanePlusLpgPct": 45.69,
             "plant": "Tank Farm",
-            "meetingDate": "29/09/2026",
+            "meetingDate": "26/10/2026",
             "targetField": "inventory",
             "sourceMetric": "propanePct",
-            "lastSync": "25/10/2026 09:30",
+            "lastSync": "26/10/2026 18:45",
             "syncMethod": "ready"
         }
     }
