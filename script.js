@@ -176,14 +176,14 @@
     dateText: initialDateTime.dateText,
     timeText: initialDateTime.timeText,
     // Card 1: Inventory
-    inventoryPct: 65.87, // ค่าจริงจาก GSP Daily Report (Tank Farm): Propane %
-    inventoryTon: 13174,
+    inventoryPct: 69.32, // ค่าจริงจาก GSP Daily Report (Tank Farm): Propane %
+    inventoryTon: 13864,
     inventoryCap: 20000,
     // Card 2: Tank Farm Demand
     demandPct: 70,
     demandTon: 14000,
     demandCap: 20000,
-    remainingTon: 6826,
+    remainingTon: 6136,
     tanksUsed: 7,
     tanksTotal: 10,
     // Card 3: Product Price
@@ -198,10 +198,10 @@
     crossC3ToLpg: true,
     // GSP Daily Report Tank Farm Values
     gspData: {
-      propanePct: 65.87,
-      lpgPct: 40.06,
-      nglPct: 63.15,
-      propanePlusLpgPct: 45.69,
+      propanePct: 69.32,
+      lpgPct: 40.53,
+      nglPct: 61.81,
+      propanePlusLpgPct: 46.81,
     },
     // 3 Production Modes
     modes: {
@@ -271,17 +271,17 @@
       if (raw) {
         const saved = JSON.parse(raw);
         if (saved && typeof saved === 'object') {
-          // Auto-upgrade previous default baseline to today's live Tank Farm figures
-          if (saved.inventoryPct === 68.17 || saved.inventoryPct === 50.81) {
-            saved.inventoryPct = 65.87;
-            saved.inventoryTon = 13174;
-            saved.remainingTon = 6826;
+          // Auto-upgrade previous default baseline to today's live Tank Farm figures (69.32%)
+          if (saved.inventoryPct === 65.87 || saved.inventoryPct === 68.17 || saved.inventoryPct === 50.81) {
+            saved.inventoryPct = 69.32;
+            saved.inventoryTon = 13864;
+            saved.remainingTon = 6136;
           }
-          if (saved.gspData && (saved.gspData.propanePct === 68.17 || saved.gspData.propanePct === 50.81)) {
-            saved.gspData.propanePct = 65.87;
-            saved.gspData.lpgPct = 40.06;
-            saved.gspData.nglPct = 63.15;
-            saved.gspData.propanePlusLpgPct = 45.69;
+          if (saved.gspData && (saved.gspData.propanePct === 65.87 || saved.gspData.propanePct === 68.17 || saved.gspData.propanePct === 50.81)) {
+            saved.gspData.propanePct = 69.32;
+            saved.gspData.lpgPct = 40.53;
+            saved.gspData.nglPct = 61.81;
+            saved.gspData.propanePlusLpgPct = 46.81;
           }
           Object.assign(state, saved);
           // Always initialize date & time with live internet time upon reload
@@ -1334,12 +1334,12 @@
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed?.data) {
-            // Upgrade obsolete placeholder/previous baseline to current real GSP values (65.87)
-            if (parsed.data.propanePct === 50.81 || parsed.data.propanePct === 68.17) {
-              parsed.data.propanePct = 65.87;
-              parsed.data.lpgPct = 40.06;
-              parsed.data.nglPct = 63.15;
-              parsed.data.propanePlusLpgPct = 45.69;
+            // Upgrade obsolete placeholder/previous baseline to current real GSP values (69.32)
+            if (parsed.data.propanePct === 50.81 || parsed.data.propanePct === 68.17 || parsed.data.propanePct === 65.87) {
+              parsed.data.propanePct = 69.32;
+              parsed.data.lpgPct = 40.53;
+              parsed.data.nglPct = 61.81;
+              parsed.data.propanePlusLpgPct = 46.81;
               saveGspCache(parsed.data);
             }
             Object.assign(state.gspData, parsed.data);
@@ -1360,90 +1360,78 @@
       btnBm.href = bmCode;
     }
 
-    // Live Fetch from Chrome Tab (Localhost) or fallback to Online/Cached Mode
+    // Live Fetch from Chrome Tab (Localhost bridge) or latest_state.json fallback
     doFetchGspFromChrome = async function (isManualClick = false) {
       if (window.location.protocol === 'file:') return;
 
       const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-      const apiUrl = isLocalHost ? '/api/fetch-gsp' : 'api/fetch-gsp';
+      const apiEndpoints = isLocalHost
+        ? ['/api/fetch-gsp']
+        : ['http://127.0.0.1:8080/api/fetch-gsp', 'latest_state.json?t=' + Date.now()];
 
       if (isManualClick && statusBanner) {
-        statusBanner.textContent = 'กำลังตรวจสอบการเชื่อมต่อข้อมูลสด GSP Daily Report...';
+        statusBanner.className = 'gsp-status-banner';
+        statusBanner.textContent = '🔄 กำลังดึงค่าสดจากหน้า Tank Farm (GSP Daily Report)...';
       }
 
-      // 1. If running on GitHub Pages (Online Static Host)
-      if (!isLocalHost) {
+      let fetchedData = null;
+      let usedSource = '';
+
+      for (const url of apiEndpoints) {
         try {
-          const stateRes = await fetch('latest_state.json?t=' + Date.now());
-          if (stateRes.ok) {
-            const remoteState = await stateRes.json();
-            if (remoteState?.gspData) {
-              Object.assign(state.gspData, remoteState.gspData);
-              if (remoteState.gspData.propanePct != null) {
-                updateInvPct(remoteState.gspData.propanePct);
-                syncInputsFromState();
-                renderBoard();
-              }
-              saveGspCache(state.gspData);
-              updateGspModalUI();
-            }
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4500);
+          const resp = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+          clearTimeout(timeoutId);
+
+          if (!resp.ok) continue;
+          const json = await resp.json();
+          if (json?.fetchResult?.ok && json?.fetchResult?.data) {
+            fetchedData = json.fetchResult.data;
+            usedSource = 'chrome_tab';
+            break;
+          } else if (json?.gspData) {
+            fetchedData = json.gspData;
+            usedSource = 'remote_state';
+            break;
           }
         } catch (e) {}
+      }
+
+      if (fetchedData) {
+        Object.assign(state.gspData, fetchedData);
+        if (fetchedData.propanePct != null) {
+          updateInvPct(fetchedData.propanePct);
+          syncInputsFromState();
+          renderBoard();
+          syncBackendState();
+        }
+        saveGspCache(state.gspData);
+        updateGspModalUI();
 
         if (statusBanner) {
           statusBanner.className = 'gsp-status-banner is-success';
-          const p = state.gspData?.propanePct ?? 65.87;
-          const l = state.gspData?.lpgPct ?? 40.06;
-          const n = state.gspData?.nglPct ?? 63.15;
-          const s = state.gspData?.propanePlusLpgPct ?? 45.69;
-          if (isManualClick) {
-            statusBanner.innerHTML = `✅ ซิงค์ข้อมูลล่าสุดสำเร็จ: Propane=${p}% | LPG=${l}% | NGL=${n}% | Sum=${s}%<br><span style="font-size:12px;opacity:0.9;">💡 บน GitHub Pages: ลากปุ่ม <b>"📥 ซิงค์ค่าสดเข้า 3D SMART BOARD"</b> ไปไว้ที่แถบ Bookmark เพื่อคลิกซิงค์ค่าสดจากแท็บ GSP ของคุณได้ทันที หรือรันผ่าน <code>http://localhost:8080</code></span>`;
+          const p = state.gspData.propanePct;
+          const l = state.gspData.lpgPct;
+          const n = state.gspData.nglPct;
+          const s = state.gspData.propanePlusLpgPct;
+          if (usedSource === 'chrome_tab') {
+            statusBanner.innerHTML = `✅ <b>ดึงค่าสดจากหน้า Tank Farm สำเร็จ:</b> Propane=<b>${p}%</b> | LPG=<b>${l}%</b> | NGL=<b>${n}%</b> | Propane+LPG=<b>${s}%</b>`;
           } else {
-            statusBanner.innerHTML = `🌐 ข้อมูลล่าสุด: Propane=${p}% | LPG=${l}% | NGL=${n}% | Sum=${s}%`;
+            statusBanner.innerHTML = `✅ <b>ซิงค์ข้อมูลล่าสุดสำเร็จ:</b> Propane=<b>${p}%</b> | LPG=<b>${l}%</b> | NGL=<b>${n}%</b> | Propane+LPG=<b>${s}%</b>`;
           }
         }
         return;
       }
 
-      // 2. If running on Localhost with Python server (Direct Chrome Tab reading)
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
-        const resp = await fetch(apiUrl, { signal: controller.signal, cache: 'no-store' });
-        clearTimeout(timeoutId);
-
-        if (!resp.ok) throw new Error('Backend not available');
-        const data = await resp.json();
-        if (data?.fetchResult?.ok && data?.fetchResult?.data) {
-          Object.assign(state.gspData, data.fetchResult.data);
-          if (data.fetchResult.data.propanePct != null) {
-            updateInvPct(data.fetchResult.data.propanePct);
-            syncInputsFromState();
-            renderBoard();
-            syncBackendState();
-          }
-          saveGspCache(state.gspData);
-          updateGspModalUI();
-          if (statusBanner) {
-            statusBanner.className = 'gsp-status-banner is-success';
-            statusBanner.textContent = `✅ ดึงข้อมูลสดสำเร็จ! Propane=${state.gspData.propanePct}% | LPG=${state.gspData.lpgPct}% | NGL=${state.gspData.nglPct}% | Propane+LPG=${state.gspData.propanePlusLpgPct}%`;
-          }
-          return;
-        } else {
-          if (statusBanner && isManualClick) {
-            statusBanner.className = 'gsp-status-banner';
-            statusBanner.textContent = `ℹ️ ${data?.fetchResult?.message || 'แสดงข้อมูลล่าสุดจากฐานข้อมูล (Propane: ' + state.gspData.propanePct + '%)'}`;
-          }
-        }
-      } catch (err) {
-        // Backend Unreachable on Localhost
-        const p = state.gspData?.propanePct ?? 65.87;
-        const l = state.gspData?.lpgPct ?? 40.06;
-        const n = state.gspData?.nglPct ?? 63.15;
-        if (statusBanner) {
-          statusBanner.className = 'gsp-status-banner';
-          statusBanner.textContent = '⚠️ กรุณารัน python3 app.py แล้วเปิดผ่าน http://localhost:8080 เพื่อใช้ฟีเจอร์ดึงค่าสดจากแท็บ Chrome';
-        }
+      // Fallback
+      if (statusBanner) {
+        statusBanner.className = 'gsp-status-banner';
+        const p = state.gspData?.propanePct ?? 69.32;
+        const l = state.gspData?.lpgPct ?? 40.53;
+        const n = state.gspData?.nglPct ?? 61.81;
+        const s = state.gspData?.propanePlusLpgPct ?? 46.81;
+        statusBanner.innerHTML = `🌐 ข้อมูลล่าสุด: Propane=${p}% | LPG=${l}% | NGL=${n}% | Sum=${s}%<br><span style="font-size:12px;opacity:0.9;">💡 หากต้องการให้ดูดสดจากแท็บ Chrome อัตโนมัติ: รัน <code>python3 app.py</code> หรือใช้ Bookmarklet <b>"📥 ซิงค์ค่าสดเข้า 3D SMART BOARD"</b></span>`;
       }
     };
 
@@ -3047,33 +3035,13 @@
       }
     } catch (err) {}
 
-    // 6. Auto-pull live values: from local Python server if localhost, or from latest_state.json if GitHub Pages
-    const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    // 6. Auto-pull live values: from Tank Farm (Chrome / local bridge) or latest_state.json
     if (window.location.protocol !== 'file:') {
-      if (isLocal) {
-        try {
-          if (typeof doFetchGspFromChrome === 'function') {
-            doFetchGspFromChrome(false).catch(() => {});
-          }
-        } catch (err) {}
-      } else {
-        // Fetch latest state from repository for GitHub Pages
-        fetch('latest_state.json?t=' + Date.now())
-          .then((res) => (res.ok ? res.json() : null))
-          .then((remote) => {
-            if (remote?.gspData) {
-              Object.assign(state.gspData, remote.gspData);
-              if (remote.gspData.propanePct != null) {
-                updateInvPct(remote.gspData.propanePct);
-                syncInputsFromState();
-                renderBoard();
-              }
-              saveGspCache(state.gspData);
-              updateGspModalUI();
-            }
-          })
-          .catch(() => {});
-      }
+      try {
+        if (typeof doFetchGspFromChrome === 'function') {
+          doFetchGspFromChrome(false).catch(() => {});
+        }
+      } catch (err) {}
     }
   }
 

@@ -75,14 +75,14 @@ CURRENT_STATE = {
     "dateText": _init_date,
     "timeText": _init_time,
     # Card 1: Inventory
-    "inventoryPct": 65.87,  # Propane % from GSP Daily Report (Tank Farm)
-    "inventoryTon": 13174,
+    "inventoryPct": 69.32,  # Propane % from GSP Daily Report (Tank Farm)
+    "inventoryTon": 13864,
     "inventoryCap": 20000,
     # Card 2: Tank Farm Demand
     "demandPct": 70,
     "demandTon": 14000,
     "demandCap": 20000,
-    "remainingTon": 6826,
+    "remainingTon": 6136,
     "tanksUsed": 7,
     "tanksTotal": 10,
     # Card 3: Product Price
@@ -97,15 +97,15 @@ CURRENT_STATE = {
     "crossC3ToLpg": True,
     # GSP Daily Report Tank Farm Values (from https://gspdailyreport.pttplc.com/DailyReport/Index)
     "gspData": {
-        "propanePct": 65.87,
-        "lpgPct": 40.06,
-        "nglPct": 63.15,
-        "propanePlusLpgPct": 45.69,
+        "propanePct": 69.32,
+        "lpgPct": 40.53,
+        "nglPct": 61.81,
+        "propanePlusLpgPct": 46.81,
         "plant": "Tank Farm",
-        "meetingDate": "26/10/2026",
+        "meetingDate": "27/10/2026",
         "targetField": "inventory",  # 'inventory' | 'demand' | 'none'
         "sourceMetric": "propanePct",  # 'propanePct' | 'lpgPct' | 'nglPct' | 'propanePlusLpgPct'
-        "lastSync": "26/10/2026 18:45",
+        "lastSync": "27/10/2026 17:20",
         "syncMethod": "ready",
     },
     # Production Modes configuration (editable numbers)
@@ -217,39 +217,90 @@ def parse_gsp_text_or_html(content: str) -> dict:
     return result
 
 
+STATE_FILE = os.path.join(BASE_DIR, "latest_state.json")
+
+def save_current_state():
+    try:
+        data = {
+            "inventoryPct": CURRENT_STATE.get("inventoryPct", 69.32),
+            "inventoryTon": CURRENT_STATE.get("inventoryTon", 13864),
+            "inventoryCap": CURRENT_STATE.get("inventoryCap", 20000),
+            "demandPct": CURRENT_STATE.get("demandPct", 70),
+            "demandTon": CURRENT_STATE.get("demandTon", 14000),
+            "productPrice": CURRENT_STATE.get("productPrice", 300),
+            "energyPrice": CURRENT_STATE.get("energyPrice", 2650),
+            "scheduleDays": CURRENT_STATE.get("notifyConfig", {}).get("scheduleDays", [
+                "mon", "tue", "wed", "thu", "fri", "sat", "sun"
+            ]),
+            "gspData": CURRENT_STATE.get("gspData", {})
+        }
+        with open(STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[State] Error saving {STATE_FILE}: {e}")
+
+def auto_sync_to_github():
+    def _worker():
+        try:
+            subprocess.run(["git", "add", "latest_state.json"], cwd=BASE_DIR, capture_output=True, timeout=10)
+            subprocess.run(["git", "commit", "-m", "Auto sync live Tank Farm data"], cwd=BASE_DIR, capture_output=True, timeout=10)
+            subprocess.run(["git", "push", "origin", "main"], cwd=BASE_DIR, capture_output=True, timeout=15)
+        except Exception:
+            pass
+    threading.Thread(target=_worker, daemon=True).start()
+
 def fetch_gsp_from_chrome_tab() -> dict:
     """
     Uses macOS AppleScript to read the live logged-in DOM of
     https://gspdailyreport.pttplc.com/DailyReport/Index directly from Google Chrome.
+    If tab is not on Tank Farm (PlantId=8), automatically selects Tank Farm.
+    If tab is not open, automatically opens it in Chrome and reads the data.
     """
-    js_code = r"""
-    (function() {
-      var text = document.body.innerText || '';
-      var inputs = Array.from(document.querySelectorAll('input, span, div, label, td'))
-        .map(function(el) { return (el.value || el.innerText || '').trim(); })
-        .filter(Boolean)
-        .join(' | ');
-      return JSON.stringify({ text: text, flat: inputs, url: location.href });
+    js_switch = """
+    (function(){
+      var plantSel = document.getElementById('PlantId');
+      if (plantSel && plantSel.value !== '8') {
+        plantSel.value = '8';
+        plantSel.dispatchEvent(new Event('change', { bubbles: true }));
+        return 'SWITCHED_8';
+      }
+      return 'ALREADY_8';
     })()
     """
     apple_script = f'''
     tell application "Google Chrome"
+      set targetUrl to "https://gspdailyreport.pttplc.com/DailyReport/Index"
+      set targetTab to missing value
       repeat with w in windows
         repeat with t in tabs of w
           if URL of t contains "gspdailyreport.pttplc.com" then
-            return execute t javascript {json.dumps(js_code)}
+            set targetTab to t
+            exit repeat
           end if
         end repeat
+        if targetTab is not missing value then exit repeat
       end repeat
+
+      if targetTab is missing value then
+        tell front window
+          set targetTab to make new tab with properties {{URL:targetUrl}}
+        end tell
+        delay 3
+      end if
+
+      set switchRes to execute targetTab javascript {json.dumps(js_switch)}
+      if switchRes is "SWITCHED_8" then
+        delay 2
+      end if
+      return execute targetTab javascript "document.body.innerText"
     end tell
-    return "TAB_NOT_FOUND"
     '''
     try:
         proc = subprocess.run(
             ["osascript", "-e", apple_script],
             capture_output=True,
             text=True,
-            timeout=12,
+            timeout=15,
         )
         if proc.returncode != 0:
             err = proc.stderr.strip()
@@ -268,16 +319,18 @@ def fetch_gsp_from_chrome_tab() -> dict:
             return {"ok": False, "reason": "OSASCRIPT_ERROR", "message": err}
 
         out = proc.stdout.strip()
-        if out == "TAB_NOT_FOUND" or not out:
-            return {
-                "ok": False,
-                "reason": "TAB_NOT_FOUND",
-                "message": "ไม่พบแท็บ gspdailyreport.pttplc.com ที่เปิดอยู่ใน Google Chrome (กรุณาเปิดหน้าเว็บ GSP Daily Report ค้างไว้ใน Chrome)",
-            }
-
-        payload = json.loads(out)
-        parsed = parse_gsp_text_or_html(payload.get("text", "") + "\n" + payload.get("flat", ""))
-        if parsed:
+        parsed = parse_gsp_text_or_html(out)
+        if parsed and parsed.get("propanePct") is not None:
+            CURRENT_STATE["gspData"].update(parsed)
+            now_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+            CURRENT_STATE["gspData"]["lastSync"] = now_str
+            CURRENT_STATE["gspData"]["syncMethod"] = "chrome_tab"
+            pct = round(float(parsed["propanePct"]), 2)
+            CURRENT_STATE["inventoryPct"] = pct
+            CURRENT_STATE["inventoryTon"] = int(round(pct / 100 * CURRENT_STATE.get("inventoryCap", 20000)))
+            CURRENT_STATE["remainingTon"] = CURRENT_STATE.get("inventoryCap", 20000) - CURRENT_STATE["inventoryTon"]
+            save_current_state()
+            auto_sync_to_github()
             return {"ok": True, "method": "chrome_tab", "data": parsed}
         return {
             "ok": False,
@@ -288,7 +341,7 @@ def fetch_gsp_from_chrome_tab() -> dict:
         return {
             "ok": False,
             "reason": "TIMEOUT",
-            "message": "การเชื่อมต่อกับ Chrome หมดเวลา (Timeout): ตรวจสอบว่า macOS มีหน้าต่างเด้งถามสิทธิ์ควบคุม Chrome ค้างอยู่หรือไม่ หรือลองคลิกที่แท็บ GSP ใน Chrome ให้ตื่นแล้วกดดึงค่าอีกครั้ง",
+            "message": "การเชื่อมต่อกับ Chrome หมดเวลา (Timeout): ตรวจสอบว่า macOS มีหน้าต่างเด้งถามสิทธิ์ควบคุม Chrome ค้างอยู่หรือไม่",
         }
     except Exception as e:
         return {"ok": False, "reason": "EXCEPTION", "message": str(e)}
@@ -461,8 +514,8 @@ def build_teams_payload(
     rec_mode_name = flow.get("recommendedLabel", "1. C3 Max Mode")
     rec_key = flow.get("recommendedMode", "optimize")
 
-    inv_pct = state.get("inventoryPct", 65.87)
-    inv_ton = state.get("inventoryTon", 13174)
+    inv_pct = state.get("inventoryPct", 69.32)
+    inv_ton = state.get("inventoryTon", 13864)
     inv_cap = state.get("inventoryCap", 20000)
 
     demand_pct = state.get("demandPct", 70)
@@ -531,10 +584,10 @@ def build_teams_payload(
         f"- 🔥 **ต้นทุนพลังงาน (Energy Price):** **{energy_price} MMBtu/Ton** ({energy_chg})",
         "",
         "### 🌐 ข้อมูลจริงจาก GSP Daily Report (Tank Farm):",
-        f"- **Propane:** {gsp.get('propanePct', 65.87):.2f}%",
-        f"- **LPG:** {gsp.get('lpgPct', 40.06):.2f}%",
-        f"- **NGL:** {gsp.get('nglPct', 63.15):.2f}%",
-        f"- **Propane + LPG =** {gsp.get('propanePlusLpgPct', 45.69):.2f}%",
+        f"- **Propane:** {gsp.get('propanePct', 69.32):.2f}%",
+        f"- **LPG:** {gsp.get('lpgPct', 40.53):.2f}%",
+        f"- **NGL:** {gsp.get('nglPct', 61.81):.2f}%",
+        f"- **Propane + LPG =** {gsp.get('propanePlusLpgPct', 46.81):.2f}%",
         "",
         "### ⚙️ การเลือกโหมดการผลิต (3 Production Modes):",
         f"- **1. C3 Max Mode:** {'YES (★ เลือกโหมดนี้)' if rec_key == 'c3_max' else 'NO'}",
@@ -643,10 +696,10 @@ def build_teams_payload(
         {
             "type": "FactSet",
             "facts": [
-                {"title": "Propane:", "value": f"{gsp.get('propanePct', 65.87):.2f}%"},
-                {"title": "LPG:", "value": f"{gsp.get('lpgPct', 40.06):.2f}%"},
-                {"title": "NGL:", "value": f"{gsp.get('nglPct', 63.15):.2f}%"},
-                {"title": "Propane + LPG:", "value": f"{gsp.get('propanePlusLpgPct', 45.69):.2f}%"},
+                {"title": "Propane:", "value": f"{gsp.get('propanePct', 69.32):.2f}%"},
+                {"title": "LPG:", "value": f"{gsp.get('lpgPct', 40.53):.2f}%"},
+                {"title": "NGL:", "value": f"{gsp.get('nglPct', 61.81):.2f}%"},
+                {"title": "Propane + LPG:", "value": f"{gsp.get('propanePlusLpgPct', 46.81):.2f}%"},
             ],
         },
         {
@@ -877,10 +930,11 @@ class DashboardRequestHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=BASE_DIR, **kwargs)
 
     def end_headers(self):
-        # Allow CORS so bookmarklet / Chrome extension on gspdailyreport.pttplc.com can push data directly
+        # Allow CORS so bookmarklet / Chrome extension on gspdailyreport.pttplc.com or GitHub Pages can fetch directly
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+        self.send_header("Access-Control-Allow-Private-Network", "true")
         # Allow embedding inside Microsoft Teams, SharePoint, and Office 365
         self.send_header(
             "Content-Security-Policy",
