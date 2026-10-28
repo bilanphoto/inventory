@@ -24,7 +24,7 @@
     "meetingDate": "28/10/2026",
     "targetField": "inventory",
     "sourceMetric": "propanePct",
-    "lastSync": "28/10/2026 10:10",
+    "lastSync": "28/10/2026 10:12",
     "syncMethod": "chrome_tab"
   }
 }
