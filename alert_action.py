@@ -36,23 +36,23 @@ def load_config() -> dict:
 
 def load_state() -> dict:
     state = {
-        "inventoryPct": 69.32,
-        "inventoryTon": 13864,
+        "inventoryPct": 66.32,
+        "inventoryTon": 13264,
         "inventoryCap": 20000,
         "demandPct": 70,
         "demandTon": 14000,
         "productPrice": 300,
         "energyPrice": 2650,
         "gspData": {
-            "propanePct": 69.32,
-            "lpgPct": 40.53,
-            "nglPct": 61.81,
-            "propanePlusLpgPct": 46.81,
+            "propanePct": 66.32,
+            "lpgPct": 45.81,
+            "nglPct": 60.60,
+            "propanePlusLpgPct": 50.28,
             "plant": "Tank Farm",
-            "meetingDate": "27/10/2026",
+            "meetingDate": "28/10/2026",
             "targetField": "inventory",
             "sourceMetric": "propanePct",
-            "lastSync": "27/10/2026 17:20",
+            "lastSync": "28/10/2026 08:30",
             "syncMethod": "ready"
         }
     }
@@ -122,6 +122,18 @@ def send_alert():
     if allowed_days and current_day not in allowed_days:
         print(f"ℹ️ Today is {current_day}, not in configured scheduleDays {allowed_days}. Skipping alert.")
         return True
+
+    # Duplicate check: If already sent today within the last 45 minutes (e.g. by local Mac daemon), skip sending
+    last_sent = config.get("lastSent", "")
+    if last_sent:
+        try:
+            last_dt = datetime.strptime(last_sent, "%d/%m/%Y %H:%M:%S")
+            diff_sec = abs((now_thai.replace(tzinfo=None) - last_dt).total_seconds())
+            if diff_sec < 45 * 60:
+                print(f"ℹ️ Shift notification was already sent recently ({last_sent}, {int(diff_sec/60)} mins ago). Skipping duplicate send.")
+                return True
+        except Exception:
+            pass
 
     inv_pct = float(state.get("inventoryPct", 68.17))
     cap_ton = float(state.get("inventoryCap", 20000))

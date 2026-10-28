@@ -176,14 +176,14 @@
     dateText: initialDateTime.dateText,
     timeText: initialDateTime.timeText,
     // Card 1: Inventory
-    inventoryPct: 69.32, // ค่าจริงจาก GSP Daily Report (Tank Farm): Propane %
-    inventoryTon: 13864,
+    inventoryPct: 66.32, // ค่าจริงจาก GSP Daily Report (Tank Farm): Propane %
+    inventoryTon: 13264,
     inventoryCap: 20000,
     // Card 2: Tank Farm Demand
     demandPct: 70,
     demandTon: 14000,
     demandCap: 20000,
-    remainingTon: 6136,
+    remainingTon: 6736,
     tanksUsed: 7,
     tanksTotal: 10,
     // Card 3: Product Price
@@ -198,10 +198,10 @@
     crossC3ToLpg: true,
     // GSP Daily Report Tank Farm Values
     gspData: {
-      propanePct: 69.32,
-      lpgPct: 40.53,
-      nglPct: 61.81,
-      propanePlusLpgPct: 46.81,
+      propanePct: 66.32,
+      lpgPct: 45.81,
+      nglPct: 60.60,
+      propanePlusLpgPct: 50.28,
     },
     // 3 Production Modes
     modes: {
@@ -271,17 +271,17 @@
       if (raw) {
         const saved = JSON.parse(raw);
         if (saved && typeof saved === 'object') {
-          // Auto-upgrade previous default baseline to today's live Tank Farm figures (69.32%)
-          if (saved.inventoryPct === 65.87 || saved.inventoryPct === 68.17 || saved.inventoryPct === 50.81) {
-            saved.inventoryPct = 69.32;
-            saved.inventoryTon = 13864;
-            saved.remainingTon = 6136;
+          // Auto-upgrade previous default baseline to today's live Tank Farm figures (66.32%)
+          if (saved.inventoryPct === 69.32 || saved.inventoryPct === 65.87 || saved.inventoryPct === 68.17 || saved.inventoryPct === 50.81) {
+            saved.inventoryPct = 66.32;
+            saved.inventoryTon = 13264;
+            saved.remainingTon = 6736;
           }
-          if (saved.gspData && (saved.gspData.propanePct === 65.87 || saved.gspData.propanePct === 68.17 || saved.gspData.propanePct === 50.81)) {
-            saved.gspData.propanePct = 69.32;
-            saved.gspData.lpgPct = 40.53;
-            saved.gspData.nglPct = 61.81;
-            saved.gspData.propanePlusLpgPct = 46.81;
+          if (saved.gspData && (saved.gspData.propanePct === 69.32 || saved.gspData.propanePct === 65.87 || saved.gspData.propanePct === 68.17 || saved.gspData.propanePct === 50.81)) {
+            saved.gspData.propanePct = 66.32;
+            saved.gspData.lpgPct = 45.81;
+            saved.gspData.nglPct = 60.60;
+            saved.gspData.propanePlusLpgPct = 50.28;
           }
           Object.assign(state, saved);
           // Always initialize date & time with live internet time upon reload
@@ -1334,12 +1334,12 @@
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed?.data) {
-            // Upgrade obsolete placeholder/previous baseline to current real GSP values (69.32)
-            if (parsed.data.propanePct === 50.81 || parsed.data.propanePct === 68.17 || parsed.data.propanePct === 65.87) {
-              parsed.data.propanePct = 69.32;
-              parsed.data.lpgPct = 40.53;
-              parsed.data.nglPct = 61.81;
-              parsed.data.propanePlusLpgPct = 46.81;
+            // Upgrade obsolete placeholder/previous baseline to current real GSP values (66.32)
+            if (parsed.data.propanePct === 50.81 || parsed.data.propanePct === 68.17 || parsed.data.propanePct === 65.87 || parsed.data.propanePct === 69.32) {
+              parsed.data.propanePct = 66.32;
+              parsed.data.lpgPct = 45.81;
+              parsed.data.nglPct = 60.60;
+              parsed.data.propanePlusLpgPct = 50.28;
               saveGspCache(parsed.data);
             }
             Object.assign(state.gspData, parsed.data);
@@ -1362,8 +1362,6 @@
 
     // Live Fetch from Chrome Tab (Localhost bridge) or latest_state.json fallback
     doFetchGspFromChrome = async function (isManualClick = false) {
-      if (window.location.protocol === 'file:') return;
-
       const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
       const apiEndpoints = isLocalHost
         ? ['/api/fetch-gsp']
@@ -1427,10 +1425,10 @@
       // Fallback
       if (statusBanner) {
         statusBanner.className = 'gsp-status-banner';
-        const p = state.gspData?.propanePct ?? 69.32;
-        const l = state.gspData?.lpgPct ?? 40.53;
-        const n = state.gspData?.nglPct ?? 61.81;
-        const s = state.gspData?.propanePlusLpgPct ?? 46.81;
+        const p = state.gspData?.propanePct ?? 66.32;
+        const l = state.gspData?.lpgPct ?? 45.81;
+        const n = state.gspData?.nglPct ?? 60.60;
+        const s = state.gspData?.propanePlusLpgPct ?? 50.28;
         statusBanner.innerHTML = `🌐 ข้อมูลล่าสุด: Propane=${p}% | LPG=${l}% | NGL=${n}% | Sum=${s}%<br><span style="font-size:12px;opacity:0.9;">💡 หากต้องการให้ดูดสดจากแท็บ Chrome อัตโนมัติ: รัน <code>python3 app.py</code> หรือใช้ Bookmarklet <b>"📥 ซิงค์ค่าสดเข้า 3D SMART BOARD"</b></span>`;
       }
     };
@@ -2074,13 +2072,15 @@
     // Auto-sync dashboard screenshot to backend periodically so daily schedule alert has the latest image
     let syncScreenshotTimeout = null;
     triggerScreenshotSync = function () {
-      if (window.location.protocol === 'file:') return;
       clearTimeout(syncScreenshotTimeout);
       syncScreenshotTimeout = setTimeout(async () => {
         try {
           const shot = await captureDashboardScreenshot();
           if (shot) {
-            fetch('/api/sync-screenshot', {
+            const url = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+              ? '/api/sync-screenshot'
+              : 'http://127.0.0.1:8080/api/sync-screenshot';
+            fetch(url, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ screenshot: shot }),

@@ -75,14 +75,14 @@ CURRENT_STATE = {
     "dateText": _init_date,
     "timeText": _init_time,
     # Card 1: Inventory
-    "inventoryPct": 69.32,  # Propane % from GSP Daily Report (Tank Farm)
-    "inventoryTon": 13864,
+    "inventoryPct": 66.32,  # Propane % from GSP Daily Report (Tank Farm)
+    "inventoryTon": 13264,
     "inventoryCap": 20000,
     # Card 2: Tank Farm Demand
     "demandPct": 70,
     "demandTon": 14000,
     "demandCap": 20000,
-    "remainingTon": 6136,
+    "remainingTon": 6736,
     "tanksUsed": 7,
     "tanksTotal": 10,
     # Card 3: Product Price
@@ -97,15 +97,15 @@ CURRENT_STATE = {
     "crossC3ToLpg": True,
     # GSP Daily Report Tank Farm Values (from https://gspdailyreport.pttplc.com/DailyReport/Index)
     "gspData": {
-        "propanePct": 69.32,
-        "lpgPct": 40.53,
-        "nglPct": 61.81,
-        "propanePlusLpgPct": 46.81,
+        "propanePct": 66.32,
+        "lpgPct": 45.81,
+        "nglPct": 60.60,
+        "propanePlusLpgPct": 50.28,
         "plant": "Tank Farm",
-        "meetingDate": "27/10/2026",
+        "meetingDate": "28/10/2026",
         "targetField": "inventory",  # 'inventory' | 'demand' | 'none'
         "sourceMetric": "propanePct",  # 'propanePct' | 'lpgPct' | 'nglPct' | 'propanePlusLpgPct'
-        "lastSync": "27/10/2026 17:20",
+        "lastSync": "28/10/2026 08:30",
         "syncMethod": "ready",
     },
     # Production Modes configuration (editable numbers)
@@ -251,20 +251,47 @@ def auto_sync_to_github():
 
 def fetch_gsp_from_chrome_tab() -> dict:
     """
-    Uses macOS AppleScript to read the live logged-in DOM of
-    https://gspdailyreport.pttplc.com/DailyReport/Index directly from Google Chrome.
-    If tab is not on Tank Farm (PlantId=8), automatically selects Tank Farm.
-    If tab is not open, automatically opens it in Chrome and reads the data.
+    Uses macOS AppleScript to query GSP Daily Report directly inside the active authenticated Chrome session.
+    Fetches the live Tank Farm report (/FeedAndProduction/Index?plantId=8) via in-session XMLHttpRequest.
+    Handles date fallback to latest finalized report if current day is not yet closed.
     """
-    js_switch = """
-    (function(){
-      var plantSel = document.getElementById('PlantId');
-      if (plantSel && plantSel.value !== '8') {
-        plantSel.value = '8';
-        plantSel.dispatchEvent(new Event('change', { bubbles: true }));
-        return 'SWITCHED_8';
+    js_code = """
+    (function() {
+      function tryFetch(dt) {
+        try {
+          var url = "/FeedAndProduction/Index?plantId=8" + (dt ? "&trnDate=" + encodeURIComponent(dt) : "");
+          var xhr = new XMLHttpRequest();
+          xhr.open("GET", url, false);
+          xhr.send();
+          return xhr.responseText;
+        } catch(e) { return ""; }
       }
-      return 'ALREADY_8';
+
+      function parseVals(h) {
+        if (!h || h.indexOf("TREND INV") < 0) return null;
+        var m_p = h.match(/Propane<\\/div>[\\s\\S]*?class="number data-value">\\s*([0-9]+(?:\\.[0-9]+)?)\\s*<span>%/);
+        var p = m_p ? parseFloat(m_p[1]) : 0;
+        return p > 0 ? h : null;
+      }
+
+      // 1. Try date from #TrnDate if available
+      var elDate = document.getElementById("TrnDate");
+      var dStr = elDate && elDate.value ? elDate.value : "";
+      var html = parseVals(tryFetch(dStr));
+
+      // 2. If 0 or not found, try today and yesterday
+      if (!html) {
+        var today = new Date();
+        var tStr = ("0" + today.getDate()).slice(-2) + "/" + ("0" + (today.getMonth() + 1)).slice(-2) + "/" + today.getFullYear();
+        html = parseVals(tryFetch(tStr));
+      }
+      if (!html) {
+        var y = new Date();
+        y.setDate(y.getDate() - 1);
+        var yStr = ("0" + y.getDate()).slice(-2) + "/" + ("0" + (y.getMonth() + 1)).slice(-2) + "/" + y.getFullYear();
+        html = parseVals(tryFetch(yStr));
+      }
+      return JSON.stringify({ ok: !!html, html: html || "" });
     })()
     """
     apple_script = f'''
@@ -288,11 +315,7 @@ def fetch_gsp_from_chrome_tab() -> dict:
         delay 3
       end if
 
-      set switchRes to execute targetTab javascript {json.dumps(js_switch)}
-      if switchRes is "SWITCHED_8" then
-        delay 2
-      end if
-      return execute targetTab javascript "document.body.innerText"
+      return execute targetTab javascript {json.dumps(js_code)}
     end tell
     '''
     try:
@@ -319,7 +342,22 @@ def fetch_gsp_from_chrome_tab() -> dict:
             return {"ok": False, "reason": "OSASCRIPT_ERROR", "message": err}
 
         out = proc.stdout.strip()
-        parsed = parse_gsp_text_or_html(out)
+        data = json.loads(out) if (out and out.startswith("{")) else {}
+        html = data.get("html", "")
+        parsed = {}
+        if html:
+            m_p = re.search(r"Propane</div>[\s\S]*?class=\"number data-value\">\s*([0-9]+(?:\.[0-9]+)?)\s*<span>%", html)
+            if m_p: parsed["propanePct"] = float(m_p.group(1))
+            m_l = re.search(r"LPG</div>[\s\S]*?class=\"number data-value\">\s*([0-9]+(?:\.[0-9]+)?)\s*<span>%", html)
+            if m_l: parsed["lpgPct"] = float(m_l.group(1))
+            m_n = re.search(r"NGL</div>[\s\S]*?class=\"number data-value\">\s*([0-9]+(?:\.[0-9]+)?)\s*<span>%", html)
+            if m_n: parsed["nglPct"] = float(m_n.group(1))
+            m_s = re.search(r"Propane\s*\+\s*LPG\s*=[\s\S]*?class=\"number data-value\">\s*([0-9]+(?:\.[0-9]+)?)\s*<span>%", html)
+            if m_s: parsed["propanePlusLpgPct"] = float(m_s.group(1))
+
+        if not parsed:
+            parsed = parse_gsp_text_or_html(out)
+
         if parsed and parsed.get("propanePct") is not None:
             CURRENT_STATE["gspData"].update(parsed)
             now_str = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -329,6 +367,9 @@ def fetch_gsp_from_chrome_tab() -> dict:
             CURRENT_STATE["inventoryPct"] = pct
             CURRENT_STATE["inventoryTon"] = int(round(pct / 100 * CURRENT_STATE.get("inventoryCap", 20000)))
             CURRENT_STATE["remainingTon"] = CURRENT_STATE.get("inventoryCap", 20000) - CURRENT_STATE["inventoryTon"]
+            cur_date, cur_time = get_current_thai_datetime()
+            CURRENT_STATE["dateText"] = cur_date
+            CURRENT_STATE["timeText"] = cur_time
             save_current_state()
             auto_sync_to_github()
             return {"ok": True, "method": "chrome_tab", "data": parsed}
@@ -514,8 +555,8 @@ def build_teams_payload(
     rec_mode_name = flow.get("recommendedLabel", "1. C3 Max Mode")
     rec_key = flow.get("recommendedMode", "optimize")
 
-    inv_pct = state.get("inventoryPct", 69.32)
-    inv_ton = state.get("inventoryTon", 13864)
+    inv_pct = state.get("inventoryPct", 66.32)
+    inv_ton = state.get("inventoryTon", 13264)
     inv_cap = state.get("inventoryCap", 20000)
 
     demand_pct = state.get("demandPct", 70)
@@ -531,8 +572,11 @@ def build_teams_payload(
     cross_c3 = "YES" if state.get("crossC3ToLpg", True) else "NO"
     now_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     cur_date, cur_time = get_current_thai_datetime()
-    display_date = state.get("dateText") or cur_date
-    display_time = state.get("timeText") or cur_time
+    # Always use live current date & time on notification sends
+    display_date = cur_date
+    display_time = cur_time
+    state["dateText"] = cur_date
+    state["timeText"] = cur_time
 
     # Process & upload screenshot if provided or available on disk
     screenshot_path = os.path.join(BASE_DIR, "latest_dashboard.jpg")
@@ -551,8 +595,11 @@ def build_teams_payload(
 
     if not image_bytes and os.path.exists(screenshot_path):
         try:
-            with open(screenshot_path, "rb") as f:
-                image_bytes = f.read()
+            mtime = os.path.getmtime(screenshot_path)
+            # Only use screenshot if fresh (within 18 hours), avoiding stale pictures with old numbers
+            if (time.time() - mtime) < 18 * 3600:
+                with open(screenshot_path, "rb") as f:
+                    image_bytes = f.read()
         except Exception:
             pass
 
@@ -584,10 +631,10 @@ def build_teams_payload(
         f"- 🔥 **ต้นทุนพลังงาน (Energy Price):** **{energy_price} MMBtu/Ton** ({energy_chg})",
         "",
         "### 🌐 ข้อมูลจริงจาก GSP Daily Report (Tank Farm):",
-        f"- **Propane:** {gsp.get('propanePct', 69.32):.2f}%",
-        f"- **LPG:** {gsp.get('lpgPct', 40.53):.2f}%",
-        f"- **NGL:** {gsp.get('nglPct', 61.81):.2f}%",
-        f"- **Propane + LPG =** {gsp.get('propanePlusLpgPct', 46.81):.2f}%",
+        f"- **Propane:** {gsp.get('propanePct', 66.32):.2f}%",
+        f"- **LPG:** {gsp.get('lpgPct', 45.81):.2f}%",
+        f"- **NGL:** {gsp.get('nglPct', 60.60):.2f}%",
+        f"- **Propane + LPG =** {gsp.get('propanePlusLpgPct', 50.28):.2f}%",
         "",
         "### ⚙️ การเลือกโหมดการผลิต (3 Production Modes):",
         f"- **1. C3 Max Mode:** {'YES (★ เลือกโหมดนี้)' if rec_key == 'c3_max' else 'NO'}",
@@ -696,10 +743,10 @@ def build_teams_payload(
         {
             "type": "FactSet",
             "facts": [
-                {"title": "Propane:", "value": f"{gsp.get('propanePct', 69.32):.2f}%"},
-                {"title": "LPG:", "value": f"{gsp.get('lpgPct', 40.53):.2f}%"},
-                {"title": "NGL:", "value": f"{gsp.get('nglPct', 61.81):.2f}%"},
-                {"title": "Propane + LPG:", "value": f"{gsp.get('propanePlusLpgPct', 46.81):.2f}%"},
+                {"title": "Propane:", "value": f"{gsp.get('propanePct', 66.32):.2f}%"},
+                {"title": "LPG:", "value": f"{gsp.get('lpgPct', 45.81):.2f}%"},
+                {"title": "NGL:", "value": f"{gsp.get('nglPct', 60.60):.2f}%"},
+                {"title": "Propane + LPG:", "value": f"{gsp.get('propanePlusLpgPct', 50.28):.2f}%"},
             ],
         },
         {

@@ -2,10 +2,30 @@
   "webhookUrl": "https://defaultf2fda5e72ea1450d9fc12af5f86300.95.environment.api.powerplatform.com/powerautomate/automations/direct/cu/18/workflows/904ec45ba2f343b0bf609507bba19298/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=P7wxp36yBmVsRRsQL6hEIYzC7BoO9r8IUQrmM8_9Xfc",
   "scheduleEnabled": true,
   "scheduleTimes": [
-    "08:00",
-    "20:00"
+    "08:00"
   ],
-  "scheduleTime": "08:00, 20:00",
+  "scheduleTime": "08:00",
+  "lastSent": "28/10/2026 08:00:24",
+  "lastStatus": "สำเร็จ (202 Accepted)",
+  "lastError": null,
+  "sendLogs": [
+    {
+      "timestamp": "28/10/2026 08:00:24",
+      "reason": "ตั้งเวลาประจำวัน (รอบ 08:00 น.)",
+      "status": "สำเร็จ (202 Accepted)",
+      "statusCode": 202,
+      "recommendedMode": "Optimization (2. Optimize Mode)",
+      "ok": true
+    },
+    {
+      "timestamp": "26/10/2026 18:45:00",
+      "reason": "ทดสอบระบบ Automation (รอบกะการผลิต)",
+      "status": "สำเร็จ (202 Accepted)",
+      "statusCode": 202,
+      "recommendedMode": "Optimization (2. Optimize Mode)",
+      "ok": true
+    }
+  ],
   "scheduleDays": [
     "mon",
     "tue",
@@ -14,34 +34,5 @@
     "fri",
     "sat",
     "sun"
-  ],
-  "lastSent": "26/10/2026 18:45:00",
-  "lastStatus": "สำเร็จ (202 Accepted)",
-  "lastError": null,
-  "sendLogs": [
-    {
-      "timestamp": "26/10/2026 18:45:00",
-      "reason": "ทดสอบระบบ Automation (รอบกะการผลิต)",
-      "status": "สำเร็จ (202 Accepted)",
-      "statusCode": 202,
-      "recommendedMode": "Optimization (2. Optimize Mode)",
-      "ok": true
-    },
-    {
-      "timestamp": "25/10/2026 13:34:46",
-      "reason": "ตั้งเวลาอัตโนมัติประจำวัน (รอบเปลี่ยนกะการผลิต)",
-      "status": "สำเร็จ (202 Accepted)",
-      "statusCode": 202,
-      "recommendedMode": "Optimization (2. Optimize Mode)",
-      "ok": true
-    },
-    {
-      "timestamp": "25/10/2026 13:32:46",
-      "reason": "ทดสอบระบบ Automation (รอบกะการผลิต)",
-      "status": "สำเร็จ (202 Accepted)",
-      "statusCode": 202,
-      "recommendedMode": "Optimization (2. Optimize Mode)",
-      "ok": true
-    }
   ]
 }
