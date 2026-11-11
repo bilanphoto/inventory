@@ -36,23 +36,23 @@ def load_config() -> dict:
 
 def load_state() -> dict:
     state = {
-        "inventoryPct": 66.32,
-        "inventoryTon": 13264,
+        "inventoryPct": 65.16,
+        "inventoryTon": 13032,
         "inventoryCap": 20000,
         "demandPct": 70,
         "demandTon": 14000,
         "productPrice": 300,
         "energyPrice": 2650,
         "gspData": {
-            "propanePct": 66.32,
-            "lpgPct": 45.81,
-            "nglPct": 60.60,
-            "propanePlusLpgPct": 50.28,
+            "propanePct": 65.16,
+            "lpgPct": 61.39,
+            "nglPct": 52.24,
+            "propanePlusLpgPct": 62.21,
             "plant": "Tank Farm",
-            "meetingDate": "28/10/2026",
+            "meetingDate": "11/11/2026",
             "targetField": "inventory",
             "sourceMetric": "propanePct",
-            "lastSync": "28/10/2026 08:30",
+            "lastSync": "11/11/2026 11:15",
             "syncMethod": "ready"
         }
     }
@@ -103,19 +103,25 @@ def send_alert():
     # Calculate Thai Time (UTC+7)
     thai_tz = timezone(timedelta(hours=7))
     now_thai = datetime.now(thai_tz)
+    now_hm = now_thai.strftime("%H:%M")
     thai_months = [
         "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
         "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
     ]
     month_name = thai_months[now_thai.month - 1]
-    date_thai = f"วันที่ {now_thai.day} {month_name} {now_thai.year} {now_thai.strftime('%H:%M')} น."
+    date_thai = f"วันที่ {now_thai.day} {month_name} {now_thai.year} {now_hm} น."
     full_timestamp = now_thai.strftime("%d/%m/%Y %H:%M:%S")
 
     config = load_config()
     webhook_url = os.environ.get("TEAMS_WEBHOOK_URL") or config.get("webhookUrl") or DEFAULT_WEBHOOK
     state = load_state()
 
-    # Check day of week (Thai time: Mon=0, ..., Sun=6)
+    # 1. Check if scheduling is enabled
+    if not config.get("scheduleEnabled", True):
+        print("ℹ️ Schedule is disabled in notify_config.json. Skipping alert.")
+        return True
+
+    # 2. Check day of week (Thai time: Mon=0, ..., Sun=6)
     day_abbr_list = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
     current_day = day_abbr_list[now_thai.weekday()]
     allowed_days = config.get("scheduleDays") or state.get("scheduleDays") or day_abbr_list
@@ -123,19 +129,51 @@ def send_alert():
         print(f"ℹ️ Today is {current_day}, not in configured scheduleDays {allowed_days}. Skipping alert.")
         return True
 
-    # Duplicate check: If already sent today within the last 45 minutes (e.g. by local Mac daemon), skip sending
+    # 3. Check time window! Prevent delayed GitHub Actions runs from sending alerts off-hours (e.g. 03:17 AM or 15:00 PM)
+    raw_times = config.get("scheduleTimes") or config.get("scheduleTime") or ["08:00", "20:00"]
+    if isinstance(raw_times, str):
+        schedule_times = [t.strip() for t in raw_times.replace(";", ",").split(",") if t.strip()]
+    elif isinstance(raw_times, list):
+        schedule_times = [t.strip() for t in raw_times if isinstance(t, str) and t.strip()]
+    else:
+        schedule_times = ["08:00", "20:00"]
+
+    # Calculate difference in minutes to the closest scheduled time
+    now_total_min = now_thai.hour * 60 + now_thai.minute
+    min_diff = float("inf")
+    matched_target = None
+    for st in schedule_times:
+        try:
+            parts = st.split(":")
+            st_min = int(parts[0]) * 60 + int(parts[1])
+            diff = abs(now_total_min - st_min)
+            if diff < min_diff:
+                min_diff = diff
+                matched_target = st
+        except Exception:
+            continue
+
+    # Allow maximum 45-minute window around scheduled times (e.g. 07:15 - 08:45 or 19:15 - 20:45)
+    # If GitHub Actions free runner queue delayed execution into arbitrary hours, ABORT immediately!
+    is_manual_run = os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
+    if not is_manual_run and min_diff > 45:
+        print(f"⚠️ [GUARD] Current Thai time is {now_hm}, which is {int(min_diff)} minutes away from scheduled times {schedule_times}.")
+        print("   This run was delayed by GitHub Actions runner queue latency. Aborting alert to prevent off-hours spam.")
+        return True
+
+    # 4. Duplicate check: If already sent within the last 90 minutes (e.g. by local Mac daemon), skip sending
     last_sent = config.get("lastSent", "")
     if last_sent:
         try:
             last_dt = datetime.strptime(last_sent, "%d/%m/%Y %H:%M:%S")
             diff_sec = abs((now_thai.replace(tzinfo=None) - last_dt).total_seconds())
-            if diff_sec < 45 * 60:
+            if diff_sec < 90 * 60:
                 print(f"ℹ️ Shift notification was already sent recently ({last_sent}, {int(diff_sec/60)} mins ago). Skipping duplicate send.")
                 return True
         except Exception:
             pass
 
-    inv_pct = float(state.get("inventoryPct", 68.17))
+    inv_pct = float(state.get("inventoryPct", 65.16))
     cap_ton = float(state.get("inventoryCap", 20000))
     inv_ton = round(inv_pct / 100 * cap_ton)
     demand_pct = float(state.get("demandPct", 70))
@@ -154,7 +192,7 @@ def send_alert():
         f"• 3. LPG Mode: {modes['lpg_mode']}\n"
         f"👉 โหมดที่ระบบเลือก: ⭐ {modes['rec_mode']} ({modes['condition_text']})\n"
         f"📦 Inventory: {inv_pct:.2f}% ({inv_ton:,} / {int(cap_ton):,} Ton)\n"
-        f"🌐 GSP Propane: {gsp.get('propanePct', inv_pct)}% | LPG: {gsp.get('lpgPct', 36.19)}% | NGL: {gsp.get('nglPct', 62.39)}%"
+        f"🌐 GSP Propane: {gsp.get('propanePct', inv_pct)}% | LPG: {gsp.get('lpgPct', 61.39)}% | NGL: {gsp.get('nglPct', 52.24)}%"
     )
 
     markdown_body = (
@@ -169,9 +207,9 @@ def send_alert():
         f"- 🔥 **ต้นทุนพลังงาน (Energy Price):** **{energy_price} MMBtu/Ton** (+8%)\n\n"
         f"### 🌐 ข้อมูลจริงจาก GSP Daily Report (Tank Farm):\n"
         f"- **Propane:** {gsp.get('propanePct', inv_pct)}%\n"
-        f"- **LPG:** {gsp.get('lpgPct', 36.19)}%\n"
-        f"- **NGL:** {gsp.get('nglPct', 62.39)}%\n"
-        f"- **Propane + LPG =** {gsp.get('propanePlusLpgPct', 43.17)}%\n\n"
+        f"- **LPG:** {gsp.get('lpgPct', 61.39)}%\n"
+        f"- **NGL:** {gsp.get('nglPct', 52.24)}%\n"
+        f"- **Propane + LPG =** {gsp.get('propanePlusLpgPct', 62.21)}%\n\n"
         f"### ⚙️ การเลือกโหมดการผลิต (3 Production Modes):\n"
         f"- **1. C3 Max Mode:** {modes['c3_max']}\n"
         f"- **2. Optimize Mode:** {modes['optimize']}\n"
@@ -244,9 +282,9 @@ def send_alert():
                 "type": "FactSet",
                 "facts": [
                     {"title": "Propane:", "value": f"{gsp.get('propanePct', inv_pct)}%"},
-                    {"title": "LPG:", "value": f"{gsp.get('lpgPct', 36.19)}%"},
-                    {"title": "NGL:", "value": f"{gsp.get('nglPct', 62.39)}%"},
-                    {"title": "Propane + LPG:", "value": f"{gsp.get('propanePlusLpgPct', 43.17)}%"}
+                    {"title": "LPG:", "value": f"{gsp.get('lpgPct', 61.39)}%"},
+                    {"title": "NGL:", "value": f"{gsp.get('nglPct', 52.24)}%"},
+                    {"title": "Propane + LPG:", "value": f"{gsp.get('propanePlusLpgPct', 62.21)}%"}
                 ]
             },
             {

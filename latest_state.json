@@ -1,6 +1,6 @@
 {
-  "inventoryPct": 66.32,
-  "inventoryTon": 13264,
+  "inventoryPct": 65.16,
+  "inventoryTon": 13032,
   "inventoryCap": 20000,
   "demandPct": 70,
   "demandTon": 14000,
@@ -16,15 +16,15 @@
     "sun"
   ],
   "gspData": {
-    "propanePct": 66.32,
-    "lpgPct": 45.81,
-    "nglPct": 60.6,
-    "propanePlusLpgPct": 50.28,
+    "propanePct": 65.16,
+    "lpgPct": 61.39,
+    "nglPct": 52.24,
+    "propanePlusLpgPct": 62.21,
     "plant": "Tank Farm",
-    "meetingDate": "28/10/2026",
+    "meetingDate": "11/11/2026",
     "targetField": "inventory",
     "sourceMetric": "propanePct",
-    "lastSync": "28/10/2026 10:12",
+    "lastSync": "11/11/2026 11:15",
     "syncMethod": "chrome_tab"
   }
 }

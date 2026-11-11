@@ -75,14 +75,14 @@ CURRENT_STATE = {
     "dateText": _init_date,
     "timeText": _init_time,
     # Card 1: Inventory
-    "inventoryPct": 66.32,  # Propane % from GSP Daily Report (Tank Farm)
-    "inventoryTon": 13264,
+    "inventoryPct": 65.16,  # Propane % from GSP Daily Report (Tank Farm)
+    "inventoryTon": 13032,
     "inventoryCap": 20000,
     # Card 2: Tank Farm Demand
     "demandPct": 70,
     "demandTon": 14000,
     "demandCap": 20000,
-    "remainingTon": 6736,
+    "remainingTon": 6968,
     "tanksUsed": 7,
     "tanksTotal": 10,
     # Card 3: Product Price
@@ -97,15 +97,15 @@ CURRENT_STATE = {
     "crossC3ToLpg": True,
     # GSP Daily Report Tank Farm Values (from https://gspdailyreport.pttplc.com/DailyReport/Index)
     "gspData": {
-        "propanePct": 66.32,
-        "lpgPct": 45.81,
-        "nglPct": 60.60,
-        "propanePlusLpgPct": 50.28,
+        "propanePct": 65.16,
+        "lpgPct": 61.39,
+        "nglPct": 52.24,
+        "propanePlusLpgPct": 62.21,
         "plant": "Tank Farm",
-        "meetingDate": "28/10/2026",
+        "meetingDate": "11/11/2026",
         "targetField": "inventory",  # 'inventory' | 'demand' | 'none'
         "sourceMetric": "propanePct",  # 'propanePct' | 'lpgPct' | 'nglPct' | 'propanePlusLpgPct'
-        "lastSync": "28/10/2026 08:30",
+        "lastSync": "11/11/2026 11:15",
         "syncMethod": "ready",
     },
     # Production Modes configuration (editable numbers)
@@ -291,31 +291,35 @@ def fetch_gsp_from_chrome_tab() -> dict:
         var yStr = ("0" + y.getDate()).slice(-2) + "/" + ("0" + (y.getMonth() + 1)).slice(-2) + "/" + y.getFullYear();
         html = parseVals(tryFetch(yStr));
       }
-      return JSON.stringify({ ok: !!html, html: html || "" });
+
+      if (!html) {
+        return JSON.stringify({ ok: false, reason: "NO_DATA" });
+      }
+
+      var m_p = html.match(/Propane<\\/div>[\\s\\S]*?class="number data-value">\\s*([0-9]+(?:\\.[0-9]+)?)\\s*<span>%/);
+      var m_l = html.match(/LPG<\\/div>[\\s\\S]*?class="number data-value">\\s*([0-9]+(?:\\.[0-9]+)?)\\s*<span>%/);
+      var m_n = html.match(/NGL<\\/div>[\\s\\S]*?class="number data-value">\\s*([0-9]+(?:\\.[0-9]+)?)\\s*<span>%/);
+      var m_s = html.match(/Propane\\s*\\+\\s*LPG\\s*=[\\s\\S]*?class="number data-value">\\s*([0-9]+(?:\\.[0-9]+)?)\\s*<span>%/);
+
+      return JSON.stringify({
+        ok: true,
+        propanePct: m_p ? parseFloat(m_p[1]) : null,
+        lpgPct: m_l ? parseFloat(m_l[1]) : null,
+        nglPct: m_n ? parseFloat(m_n[1]) : null,
+        propanePlusLpgPct: m_s ? parseFloat(m_s[1]) : null
+      });
     })()
     """
+    fail_json = json.dumps({"ok": False, "reason": "TAB_NOT_FOUND", "message": "ไม่พบแท็บ GSP Daily Report ใน Google Chrome กรุณาเปิดแท็บ https://gspdailyreport.pttplc.com"}, ensure_ascii=False)
     apple_script = f'''
     tell application "Google Chrome"
-      set targetUrl to "https://gspdailyreport.pttplc.com/DailyReport/Index"
-      set targetTab to missing value
-      repeat with w in windows
-        repeat with t in tabs of w
-          if URL of t contains "gspdailyreport.pttplc.com" then
-            set targetTab to t
-            exit repeat
-          end if
-        end repeat
-        if targetTab is not missing value then exit repeat
+      repeat with w in every window
+        try
+          set t to (first tab of w whose URL contains "gspdailyreport.pttplc.com")
+          return execute t javascript {json.dumps(js_code, ensure_ascii=False)}
+        end try
       end repeat
-
-      if targetTab is missing value then
-        tell front window
-          set targetTab to make new tab with properties {{URL:targetUrl}}
-        end tell
-        delay 3
-      end if
-
-      return execute targetTab javascript {json.dumps(js_code)}
+      return {json.dumps(fail_json, ensure_ascii=False)}
     end tell
     '''
     try:
@@ -343,20 +347,13 @@ def fetch_gsp_from_chrome_tab() -> dict:
 
         out = proc.stdout.strip()
         data = json.loads(out) if (out and out.startswith("{")) else {}
-        html = data.get("html", "")
-        parsed = {}
-        if html:
-            m_p = re.search(r"Propane</div>[\s\S]*?class=\"number data-value\">\s*([0-9]+(?:\.[0-9]+)?)\s*<span>%", html)
-            if m_p: parsed["propanePct"] = float(m_p.group(1))
-            m_l = re.search(r"LPG</div>[\s\S]*?class=\"number data-value\">\s*([0-9]+(?:\.[0-9]+)?)\s*<span>%", html)
-            if m_l: parsed["lpgPct"] = float(m_l.group(1))
-            m_n = re.search(r"NGL</div>[\s\S]*?class=\"number data-value\">\s*([0-9]+(?:\.[0-9]+)?)\s*<span>%", html)
-            if m_n: parsed["nglPct"] = float(m_n.group(1))
-            m_s = re.search(r"Propane\s*\+\s*LPG\s*=[\s\S]*?class=\"number data-value\">\s*([0-9]+(?:\.[0-9]+)?)\s*<span>%", html)
-            if m_s: parsed["propanePlusLpgPct"] = float(m_s.group(1))
+        if not data.get("ok"):
+            return data
 
-        if not parsed:
-            parsed = parse_gsp_text_or_html(out)
+        parsed = {}
+        for k in ("propanePct", "lpgPct", "nglPct", "propanePlusLpgPct"):
+            if data.get(k) is not None:
+                parsed[k] = float(data[k])
 
         if parsed and parsed.get("propanePct") is not None:
             CURRENT_STATE["gspData"].update(parsed)
@@ -372,6 +369,7 @@ def fetch_gsp_from_chrome_tab() -> dict:
             CURRENT_STATE["timeText"] = cur_time
             save_current_state()
             auto_sync_to_github()
+            print(f"[GSP Auto-Poller] Successfully extracted live Tank Farm data: Propane={pct}%, LPG={parsed.get('lpgPct')}%, NGL={parsed.get('nglPct')}%")
             return {"ok": True, "method": "chrome_tab", "data": parsed}
         return {
             "ok": False,
@@ -927,6 +925,64 @@ def parse_schedule_times(config: dict) -> list:
     return ["08:00", "20:00"]
 
 
+def capture_dashboard_headless() -> bool:
+    """
+    Takes a fresh high-resolution screenshot of index.html using Google Chrome headless,
+    saving to latest_dashboard.jpg before sending scheduled notifications.
+    """
+    screenshot_path = os.path.join(BASE_DIR, "latest_dashboard.jpg")
+    index_url = f"file://{os.path.join(BASE_DIR, 'index.html')}"
+    chrome_bin = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    if not os.path.exists(chrome_bin):
+        return False
+    try:
+        cmd = [
+            chrome_bin,
+            "--headless",
+            "--hide-scrollbars",
+            f"--screenshot={screenshot_path}",
+            "--window-size=1280,720",
+            index_url
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        if os.path.exists(screenshot_path) and os.path.getsize(screenshot_path) > 1000:
+            print(f"[Snapshot] Fresh dashboard screenshot captured: {os.path.getsize(screenshot_path)} bytes")
+            return True
+    except Exception as e:
+        print(f"[Snapshot Error] {e}")
+    return False
+
+
+def background_gsp_poller():
+    """
+    Background daemon thread polling Google Chrome's live Tank Farm tab every 3 minutes (180s).
+    Automatically extracts fresh percentages, updates CURRENT_STATE, writes to latest_state.json,
+    and synchronizes changes to GitHub so GitHub Pages always has fresh numbers.
+    """
+    print("[GSP Auto-Poller] Background poller started (polling interval: 180s).")
+    last_known_pct = None
+    poll_count = 0
+    time.sleep(10)
+    while True:
+        try:
+            poll_count += 1
+            res = fetch_gsp_from_chrome_tab()
+            if res.get("ok") and res.get("data"):
+                cur_pct = res["data"].get("propanePct")
+                # If numbers changed, or every 10 poll cycles (30 min), push to GitHub
+                if cur_pct != last_known_pct or (poll_count % 10 == 0):
+                    last_known_pct = cur_pct
+                    save_current_state()
+                    auto_sync_to_github()
+                    capture_dashboard_headless()
+            else:
+                if poll_count % 3 == 0:
+                    print(f"[GSP Auto-Poller] Poller status: {res.get('reason', 'UNKNOWN')} - {res.get('message', '')}")
+        except Exception as e:
+            print(f"[GSP Auto-Poller Error] {e}")
+        time.sleep(180)
+
+
 def schedule_worker():
     """
     Background daemon thread checking scheduled times (e.g. 08:00 และ 20:00) every 15 seconds.
@@ -966,6 +1022,7 @@ def schedule_worker():
                             print(f"[MS Teams Scheduler] Auto-refreshed live GSP data: Propane={CURRENT_STATE['inventoryPct']}%")
                     except Exception as ge:
                         print(f"[MS Teams Scheduler] Note: Could not auto-fetch live tab ({ge}), using latest stored state.")
+                    capture_dashboard_headless()
                     send_teams_notification(reason=f"ตั้งเวลาประจำวัน (รอบ {current_hm} น.)")
         except Exception as e:
             print(f"[MS Teams Scheduler Error] {e}")
@@ -1233,6 +1290,11 @@ def run_server():
     scheduler_thread = threading.Thread(target=schedule_worker, daemon=True)
     scheduler_thread.start()
     print("[MS Teams Scheduler] Background scheduler thread started.")
+
+    # 1.1 Start background poller thread for live Chrome Tank Farm data
+    poller_thread = threading.Thread(target=background_gsp_poller, daemon=True)
+    poller_thread.start()
+    print("[GSP Auto-Poller] Background poller thread started.")
 
     # 2. Check / Generate SSL certificates for direct HTTPS
     cert_path = os.path.join(BASE_DIR, "cert.pem")

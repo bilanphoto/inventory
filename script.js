@@ -176,14 +176,14 @@
     dateText: initialDateTime.dateText,
     timeText: initialDateTime.timeText,
     // Card 1: Inventory
-    inventoryPct: 66.32, // ค่าจริงจาก GSP Daily Report (Tank Farm): Propane %
-    inventoryTon: 13264,
+    inventoryPct: 65.16, // ค่าจริงจาก GSP Daily Report (Tank Farm): Propane %
+    inventoryTon: 13032,
     inventoryCap: 20000,
     // Card 2: Tank Farm Demand
     demandPct: 70,
     demandTon: 14000,
     demandCap: 20000,
-    remainingTon: 6736,
+    remainingTon: 6968,
     tanksUsed: 7,
     tanksTotal: 10,
     // Card 3: Product Price
@@ -198,10 +198,10 @@
     crossC3ToLpg: true,
     // GSP Daily Report Tank Farm Values
     gspData: {
-      propanePct: 66.32,
-      lpgPct: 45.81,
-      nglPct: 60.60,
-      propanePlusLpgPct: 50.28,
+      propanePct: 65.16,
+      lpgPct: 61.39,
+      nglPct: 52.24,
+      propanePlusLpgPct: 62.21,
     },
     // 3 Production Modes
     modes: {
@@ -271,17 +271,17 @@
       if (raw) {
         const saved = JSON.parse(raw);
         if (saved && typeof saved === 'object') {
-          // Auto-upgrade previous default baseline to today's live Tank Farm figures (66.32%)
-          if (saved.inventoryPct === 69.32 || saved.inventoryPct === 65.87 || saved.inventoryPct === 68.17 || saved.inventoryPct === 50.81) {
-            saved.inventoryPct = 66.32;
-            saved.inventoryTon = 13264;
-            saved.remainingTon = 6736;
+          // Auto-upgrade previous default baseline to today's live Tank Farm figures (65.16%)
+          if (saved.inventoryPct === 66.32 || saved.inventoryPct === 69.32 || saved.inventoryPct === 65.87 || saved.inventoryPct === 68.17 || saved.inventoryPct === 50.81) {
+            saved.inventoryPct = 65.16;
+            saved.inventoryTon = 13032;
+            saved.remainingTon = 6968;
           }
-          if (saved.gspData && (saved.gspData.propanePct === 69.32 || saved.gspData.propanePct === 65.87 || saved.gspData.propanePct === 68.17 || saved.gspData.propanePct === 50.81)) {
-            saved.gspData.propanePct = 66.32;
-            saved.gspData.lpgPct = 45.81;
-            saved.gspData.nglPct = 60.60;
-            saved.gspData.propanePlusLpgPct = 50.28;
+          if (saved.gspData && (saved.gspData.propanePct === 66.32 || saved.gspData.propanePct === 69.32 || saved.gspData.propanePct === 65.87 || saved.gspData.propanePct === 68.17 || saved.gspData.propanePct === 50.81)) {
+            saved.gspData.propanePct = 65.16;
+            saved.gspData.lpgPct = 61.39;
+            saved.gspData.nglPct = 52.24;
+            saved.gspData.propanePlusLpgPct = 62.21;
           }
           Object.assign(state, saved);
           // Always initialize date & time with live internet time upon reload
@@ -1334,12 +1334,12 @@
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed?.data) {
-            // Upgrade obsolete placeholder/previous baseline to current real GSP values (66.32)
-            if (parsed.data.propanePct === 50.81 || parsed.data.propanePct === 68.17 || parsed.data.propanePct === 65.87 || parsed.data.propanePct === 69.32) {
-              parsed.data.propanePct = 66.32;
-              parsed.data.lpgPct = 45.81;
-              parsed.data.nglPct = 60.60;
-              parsed.data.propanePlusLpgPct = 50.28;
+            // Upgrade obsolete placeholder/previous baseline to current real GSP values (65.16)
+            if (parsed.data.propanePct === 66.32 || parsed.data.propanePct === 50.81 || parsed.data.propanePct === 68.17 || parsed.data.propanePct === 65.87 || parsed.data.propanePct === 69.32) {
+              parsed.data.propanePct = 65.16;
+              parsed.data.lpgPct = 61.39;
+              parsed.data.nglPct = 52.24;
+              parsed.data.propanePlusLpgPct = 62.21;
               saveGspCache(parsed.data);
             }
             Object.assign(state.gspData, parsed.data);
@@ -1425,11 +1425,11 @@
       // Fallback
       if (statusBanner) {
         statusBanner.className = 'gsp-status-banner';
-        const p = state.gspData?.propanePct ?? 66.32;
-        const l = state.gspData?.lpgPct ?? 45.81;
-        const n = state.gspData?.nglPct ?? 60.60;
-        const s = state.gspData?.propanePlusLpgPct ?? 50.28;
-        statusBanner.innerHTML = `🌐 ข้อมูลล่าสุด: Propane=${p}% | LPG=${l}% | NGL=${n}% | Sum=${s}%<br><span style="font-size:12px;opacity:0.9;">💡 หากต้องการให้ดูดสดจากแท็บ Chrome อัตโนมัติ: รัน <code>python3 app.py</code> หรือใช้ Bookmarklet <b>"📥 ซิงค์ค่าสดเข้า 3D SMART BOARD"</b></span>`;
+        const p = state.gspData?.propanePct ?? 65.16;
+        const l = state.gspData?.lpgPct ?? 61.39;
+        const n = state.gspData?.nglPct ?? 52.24;
+        const s = state.gspData?.propanePlusLpgPct ?? 62.21;
+        statusBanner.innerHTML = `🌐 ข้อมูลล่าสุด: Propane=${p}% | LPG=${l}% | NGL=${n}% | Sum=${s}%<br><span style="font-size:12px;opacity:0.9;">💡 ดูดค่าสดจากแท็บ Chrome อัตโนมัติทุก 3 นาทีโดย LaunchAgent หรือใช้ Bookmarklet <b>"📥 ซิงค์ค่าสดเข้า 3D SMART BOARD"</b></span>`;
       }
     };
 
@@ -2564,15 +2564,24 @@
         const cfg = JSON.parse(localCfgRaw);
         if (!cfg || !cfg.scheduleEnabled) return;
 
-        const times = Array.isArray(cfg.scheduleTimes) ? cfg.scheduleTimes : ['08:00', '20:00'];
         const now = new Date();
+        // Check allowed days
+        if (Array.isArray(cfg.scheduleDays) && cfg.scheduleDays.length) {
+          const daysMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+          const todayAbbr = daysMap[now.getDay()];
+          if (!cfg.scheduleDays.includes(todayAbbr)) return;
+        }
+
+        const times = Array.isArray(cfg.scheduleTimes) ? cfg.scheduleTimes : ['08:00', '20:00'];
         const hh = String(now.getHours()).padStart(2, '0');
         const mm = String(now.getMinutes()).padStart(2, '0');
         const currentHM = `${hh}:${mm}`;
         const ymdHM = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()} ${currentHM}`;
+        const lastSentMin = localStorage.getItem('ptt_teams_last_sent_minute') || '';
 
-        if (times.includes(currentHM) && lastClientFiredMinute !== ymdHM) {
+        if (times.includes(currentHM) && lastClientFiredMinute !== ymdHM && lastSentMin !== ymdHM) {
           lastClientFiredMinute = ymdHM;
+          localStorage.setItem('ptt_teams_last_sent_minute', ymdHM);
           console.log(`[Client Scheduler] Firing daily alert for ${currentHM} (${ymdHM})...`);
 
           await executeSendTeamsNotification(
